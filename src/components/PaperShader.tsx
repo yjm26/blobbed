@@ -1,16 +1,23 @@
+import React from "react";
 import { MeshGradient, DotOrbit } from "@paper-design/shaders-react";
 
 /**
  * Background Paper Shaders
- * Source: https://21st.dev/@reuno-ui/components/background-paper-shaders
- * MeshGradient + DotOrbit (paper grey shader look)
+ * https://21st.dev/@reuno-ui/components/background-paper-shaders
  */
 export default function PaperShader() {
   return (
-    <div className="hero-shader-inner">
-      {/* Main organic mesh (exact colors from 21st demo) */}
+    <div
+      style={{
+        position: "absolute",
+        inset: 0,
+        width: "100%",
+        height: "100%",
+        background: "#000",
+      }}
+    >
       <MeshGradient
-        className="paper-mesh"
+        style={{ position: "absolute", inset: 0, width: "100%", height: "100%" }}
         colors={["#000000", "#1a1a1a", "#333333", "#ffffff"]}
         speed={0.9}
         distortion={0.75}
@@ -18,12 +25,20 @@ export default function PaperShader() {
         grainMixer={0.5}
         grainOverlay={0.65}
       />
-      {/* Dot orbit layer for paper grain / stipple feel */}
-      <div className="paper-dots">
+      <div
+        style={{
+          position: "absolute",
+          inset: 0,
+          width: "100%",
+          height: "100%",
+          opacity: 0.5,
+          pointerEvents: "none",
+        }}
+      >
         <DotOrbit
-          className="paper-dots-canvas"
+          style={{ width: "100%", height: "100%" }}
           colorBack="#00000000"
-          colors={["#2a2a2a", "#444444", "#1a1a1a"]}
+          colors={["#2a2a2a", "#3a3a3a", "#1a1a1a"]}
           size={0.35}
           sizeRange={0.4}
           spreading={0.55}
