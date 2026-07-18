@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Blobbed — Decentralized File Storage</title>
+  <link rel="stylesheet" href="/src/style.css">
+</head>
+<body class="min-h-screen flex flex-col">
+  <nav class="nav-bar">
+    <div class="logo">Blobbed</div>
+    <button id="connect-wallet" class="btn-primary">Connect Wallet</button>
+  </nav>
+
+  <main class="flex-1 flex flex-col items-center justify-center px-4">
+    <h1 class="text-5xl md:text-7xl font-extralight text-center mb-6 tracking-tight">
+      Your files.<br>
+      <span class="text-gradient">Truly yours.</span>
+    </h1>
+    <p class="text-text-secondary text-lg text-center max-w-xl mb-12 font-light">
+      Encrypted, decentralized, and censorship-resistant file storage on Shelby Protocol.
+    </p>
+    <div class="drop-zone w-full max-w-2xl cursor-pointer" id="hero-drop-zone">
+      <p class="text-text-muted text-sm mb-2">Drag files here to upload</p>
+      <p class="text-text-muted text-xs">or click to browse</p>
+    </div>
+  </main>
+
+  <script type="module" src="/scripts/landing.ts"></script>
+</body>
+</html>

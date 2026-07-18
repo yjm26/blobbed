@@ -1,0 +1,76 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@200;300;400;500&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --bg: #0A0A0A;
+  --surface: #111111;
+  --surface-raised: #1A1A1A;
+  --border: #222222;
+  --text-primary: #FFFFFF;
+  --text-secondary: #A0A0A0;
+  --text-muted: #666666;
+  --accent-cyan: #00E5FF;
+  --accent-magenta: #FF00A0;
+  --accent-gold: #FFD700;
+}
+
+body {
+  @apply bg-bg text-text-primary font-inter antialiased;
+  background-color: var(--bg);
+  color: var(--text-primary);
+  font-family: 'Inter', sans-serif;
+  font-weight: 300;
+}
+
+.btn-primary {
+  @apply px-6 py-3 text-sm font-light tracking-wide;
+  background-color: var(--surface-raised);
+  border: 1px solid var(--border);
+  color: var(--text-primary);
+  transition: border-color 0.2s ease;
+}
+
+.btn-primary:hover {
+  border-color: var(--accent-cyan);
+}
+
+.drop-zone {
+  @apply flex flex-col items-center justify-center min-h-[200px];
+  border: 2px dashed var(--border);
+  transition: all 0.3s ease;
+}
+
+.drop-zone:hover {
+  border-color: var(--accent-cyan);
+  background-color: var(--surface-raised);
+}
+
+.card {
+  @apply p-6;
+  background-color: var(--surface);
+  border: 1px solid var(--border);
+}
+
+.accent-gradient {
+  background: linear-gradient(135deg, var(--accent-cyan), var(--accent-magenta), var(--accent-gold));
+}
+
+.text-gradient {
+  background: linear-gradient(135deg, var(--accent-cyan), var(--accent-magenta), var(--accent-gold));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.nav-bar {
+  @apply flex items-center justify-between px-8 py-6;
+  border-bottom: 1px solid var(--border);
+}
+
+.logo {
+  @apply text-xl font-light tracking-wider;
+  letter-spacing: 0.15em;
+}
