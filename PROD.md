@@ -1,96 +1,82 @@
 # Blobbed production checklist
 
 Live: https://blobbed.vercel.app  
-Health: https://blobbed.vercel.app/api/status
+Health (after Phase 3 deploy): https://blobbed.vercel.app/api/status  
+
+Repo HEAD may be ahead of live when Vercel is rate-limited.
+
+## Live probe (2026-07-18)
+
+| Check | Result |
+|-------|--------|
+| Site HTTP 200 + CSP / XFO / nosniff | OK live |
+| `GET /api/library` → `backend: neon` | OK Neon configured |
+| Upload without owner auth | Blocked (auth required; Shelby key present) |
+| Legacy `POST /api/folders` + `/api/files` without auth | **OPEN on live until Phase 3 deploys** |
+| `GET /api/status` | Ships in git `0ee3440+` — not live yet |
+| Deploy `0ee3440` | **Vercel Hobby build rate limit — retry ~24h** |
+
+Git already locks legacy mutations (410), adds `/api/status`, disables shares mock.
+
+**You must redeploy after rate limit resets** (or upgrade Vercel):  
+https://vercel.com/ — then:
+
+```bash
+curl -sS https://blobbed.vercel.app/api/status | jq .
+# expect: ready true, db.backend neon, shelby.configured true
+
+curl -sS -X POST https://blobbed.vercel.app/api/folders \
+  -H 'content-type: application/json' \
+  -d '{"ownerAddress":"0x1","name":"x"}'
+# expect: 410 USE_LIBRARY_API
+```
 
 ## Required Vercel env
 
 | Variable | Purpose |
 |----------|---------|
-| `DATABASE_URL` | Neon Postgres — multi-device library meta |
-| `APTOS_PRIVATE_KEY` | Service wallet for Shelby uploads |
-| `APTOS_NETWORK=shelbynet` | Must be shelbynet for ShelbyUSD storage |
+| `DATABASE_URL` | Neon — multi-device library |
+| `APTOS_PRIVATE_KEY` | Service wallet Shelby uploads |
+| `APTOS_NETWORK=shelbynet` | ShelbyUSD network |
 
-Optional:
+Optional: `LIBRARY_SESSION_SECRET`, `UPLOAD_MAX_PER_HOUR=30`, `MAX_UPLOAD_BYTES`, `VITE_APTOS_NETWORK=shelbynet`.
 
-| Variable | Default |
-|----------|---------|
-| `LIBRARY_SESSION_SECRET` | falls back to `APTOS_PRIVATE_KEY` |
-| `UPLOAD_MAX_PER_HOUR` | `30` |
-| `MAX_UPLOAD_BYTES` | `10485760` (~10MB encrypted body) |
-| `VITE_APTOS_NETWORK` | `shelbynet` (browser download client) |
-| `SHELBY_API_KEY` / `APTOS_API_KEY` | if Shelby gateway requires it |
-
-After any env change: **Redeploy** (Vercel → Deployments → Redeploy).
-
-## Verify (curl)
-
-```bash
-# Health — expect ready:true, db.backend neon, shelby.configured true
-curl -sS https://blobbed.vercel.app/api/status | jq .
-
-# Auth gates
-curl -sS -X POST https://blobbed.vercel.app/api/upload \
-  -H 'content-type: application/json' \
-  -d '{"encryptedBase64":"YQ==","fileName":"t","ownerAddress":"0x1"}'
-# → AUTH_REQUIRED
-
-curl -sS -X POST https://blobbed.vercel.app/api/library \
-  -H 'content-type: application/json' \
-  -d '{"op":"createFolder","ownerAddress":"0x1","name":"x"}'
-# → AUTH_REQUIRED
-
-# Legacy mutations locked
-curl -sS -X POST https://blobbed.vercel.app/api/folders \
-  -H 'content-type: application/json' \
-  -d '{"ownerAddress":"0x1","name":"x"}'
-# → 410 USE_LIBRARY_API
-```
-
-## Security headers
-
-Response should include:
-
-- `content-security-policy`
-- `x-frame-options: DENY`
-- `x-content-type-options: nosniff`
-- `referrer-policy: no-referrer`
+Env change → **Redeploy**.
 
 ## Service wallet funding
 
-1. Open `/api/status` → copy `shelby.serviceAddress`
-2. Fund **APT (gas) + ShelbyUSD (storage)** on **shelbynet**  
+1. After status is live: copy `shelby.serviceAddress`
+2. Fund APT + ShelbyUSD on shelbynet  
    https://docs.shelby.xyz/tools/wallets/petra-setup
-3. Generate new key locally if needed: `npm run wallet:service`  
-   Put private key only in Vercel env — never commit.
+3. Local keygen: `npm run wallet:service` (never commit the key)
 
-## App smoke (manual)
+## App smoke
 
-1. Hard refresh drive
-2. Connect wallet → vault sign → library session sign
-3. Status line: **Library synced (Neon)** + **Keys wrapped**
-4. Upload small image → queue progress → appears in grid
-5. Preview modal + share sheet
-6. Second browser/device same wallet → library appears (Neon)
+1. Hard refresh drive  
+2. Connect → vault sign → library session sign  
+3. “Library synced (Neon)” + “Keys wrapped”  
+4. Rail prod checks green (after Phase 3 live)  
+5. Upload → queue → preview → share sheet  
+6. Second device same wallet → meta syncs  
 
 ## Failure map
 
 | Symptom | Fix |
 |---------|-----|
-| `Library local-only` / memory | Set `DATABASE_URL`, redeploy |
-| `MISSING_APTOS_PRIVATE_KEY` | Set `APTOS_PRIVATE_KEY`, redeploy |
-| `INSUFFICIENT_FUNDS` | Fund ShelbyUSD + APT on shelbynet for service address |
-| Upload `AUTH_*` | Reconnect wallet (need publicKey + signMessage) |
-| Stale chunk 404 after deploy | Hard refresh (auto-reload once is built-in) |
-| Vault every refresh | Expected — memory-only vault |
+| Deploy rate limited | Wait ~24h or upgrade; redeploy HEAD |
+| Library memory/local | Set `DATABASE_URL`, redeploy |
+| MISSING_APTOS_PRIVATE_KEY | Set key + shelbynet, redeploy |
+| INSUFFICIENT_FUNDS | Fund service wallet ShelbyUSD + APT |
+| AUTH_* on upload | Reconnect wallet (publicKey + sign) |
+| Vault every refresh | Expected (memory-only) |
 
-## API surface (prod)
+## API surface (after Phase 3 live)
 
 | Route | Auth |
 |-------|------|
-| `GET /api/status` | Public health |
-| `GET /api/library?owner=` | Public meta (wrapped keys only) |
-| `POST /api/library` | Session ticket or owner auth |
-| `POST /api/upload` | Owner auth over ciphertext hash |
-| `GET /api/files`, `GET /api/folders` | Read-only legacy |
-| `POST/PATCH/DELETE` legacy files/folders/shares | **410 locked** |
+| GET /api/status | Public health |
+| GET /api/library | Public meta (wrapped keys) |
+| POST /api/library | Session or owner auth |
+| POST /api/upload | Owner auth (ciphertext hash) |
+| GET files/folders | Read-only legacy |
+| POST/PATCH/DELETE legacy + shares | **410** |
