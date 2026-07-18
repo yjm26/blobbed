@@ -7,7 +7,7 @@ export default function Landing() {
       <nav className="landing-nav">
         <div className="nav-inner">
           <div className="landing-logo">BLOBBED</div>
-          <a href="/pages/drive.html" className="nav-cta">GO TO APP</a>
+          <a href="/pages/gate.html" className="nav-cta">GO TO APP</a>
         </div>
       </nav>
 
@@ -26,7 +26,7 @@ export default function Landing() {
             Decentralized, encrypted file storage on Shelby Protocol.
           </p>
           <div className="hero-cta">
-            <a href="/pages/drive.html" className="cta-primary">Enter the App</a>
+            <a href="/pages/gate.html" className="cta-primary">Enter the App</a>
             <a href="#principles" className="cta-secondary">Read more</a>
           </div>
         </div>
@@ -179,7 +179,7 @@ export default function Landing() {
           <br />
           Truly yours.
         </h2>
-        <a href="/pages/drive.html" className="cta-primary">Enter the App</a>
+        <a href="/pages/gate.html" className="cta-primary">Enter the App</a>
       </section>
 
       <footer className="landing-footer">

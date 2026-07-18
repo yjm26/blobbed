@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Connect — Blobbed</title>
+</head>
+<body class="gate-page">
+  <div class="gate-bg" aria-hidden="true">
+    <div class="gate-orb gate-orb-a"></div>
+    <div class="gate-orb gate-orb-b"></div>
+    <div class="gate-orb gate-orb-c"></div>
+    <div class="gate-noise"></div>
+  </div>
+
+  <a href="/" class="gate-back">← Home</a>
+
+  <main class="gate-center">
+    <h1 class="gate-brand">Blobbed</h1>
+    <p class="gate-sub" id="gate-sub">Connect a wallet to enter</p>
+    <button type="button" class="gate-cta" id="connect-btn">Connect wallet</button>
+    <p class="gate-hint" id="gate-hint">Petra or any Aptos wallet (testnet)</p>
+    <p class="gate-error hidden" id="gate-error"></p>
+  </main>
+
+  <script type="module" src="/scripts/gate.ts"></script>
+</body>
+</html>

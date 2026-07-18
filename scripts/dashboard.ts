@@ -1,12 +1,30 @@
-import { connectWallet } from './aptos-client';
+import { connectWallet, getConnectedWallet, disconnectWallet } from './aptos-client';
 import { uploadFile } from './upload';
 import { generateShareLink } from './share';
 import type { FileMetadata } from './types';
+import '../src/style.css';
+
+const GATE = '/pages/gate.html';
 
 let wallet: { address: string; publicKey: string } | null = null;
 
 async function init() {
-  wallet = await connectWallet();
+  // Must be connected — else back to middle/gate page
+  wallet = await getConnectedWallet();
+  if (!wallet?.address) {
+    try {
+      wallet = await connectWallet();
+    } catch {
+      window.location.href = GATE;
+      return;
+    }
+  }
+  if (!wallet?.address) {
+    window.location.href = GATE;
+    return;
+  }
+
+  sessionStorage.setItem('blobbed_wallet', wallet.address);
   document.getElementById('wallet-address')!.textContent =
     wallet.address.slice(0, 6) + '...' + wallet.address.slice(-4);
   await loadFiles();
@@ -110,13 +128,13 @@ document.getElementById('file-list')?.addEventListener('click', (e) => {
   }
 });
 
-document.getElementById('disconnect')?.addEventListener('click', () => {
+document.getElementById('disconnect')?.addEventListener('click', async () => {
   wallet = null;
-  window.location.reload();
+  await disconnectWallet();
+  window.location.href = GATE;
 });
 
 init().catch((err) => {
   console.error(err);
-  const el = document.getElementById('wallet-address');
-  if (el) el.textContent = 'Connect wallet failed';
+  window.location.href = GATE;
 });

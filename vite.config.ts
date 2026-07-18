@@ -10,6 +10,7 @@ export default defineConfig({
     rollupOptions: {
       input: {
         main: resolve(__dirname, 'index.html'),
+        gate: resolve(__dirname, 'pages/gate.html'),
         drive: resolve(__dirname, 'pages/drive.html'),
         download: resolve(__dirname, 'pages/download.html'),
       },
