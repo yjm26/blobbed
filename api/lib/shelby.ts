@@ -9,10 +9,10 @@ import { ShelbyNodeClient } from '@shelby-protocol/sdk/node';
 export type ShelbyNetworkName = 'testnet' | 'shelbynet' | 'local';
 
 function resolveNetwork(): Network.TESTNET | Network.SHELBYNET | Network.LOCAL {
-  const n = (process.env.APTOS_NETWORK || process.env.SHELBY_NETWORK || 'testnet').toLowerCase();
-  if (n === 'shelbynet') return Network.SHELBYNET;
+  const n = (process.env.APTOS_NETWORK || process.env.SHELBY_NETWORK || 'shelbynet').toLowerCase();
+  if (n === 'testnet') return Network.TESTNET;
   if (n === 'local') return Network.LOCAL;
-  return Network.TESTNET;
+  return Network.SHELBYNET;
 }
 
 let _client: ShelbyNodeClient | null = null;
@@ -62,8 +62,8 @@ export function makeBlobName(ownerAddress: string, fileName: string): string {
   return `blobbed/${owner}/${id}_${safe}`;
 }
 
-/** Default expiry: 30 days from now (micros since epoch) */
-export function defaultExpirationMicros(days = 30): number {
+/** Default expiry: 2 days from now (micros) — shelbynet often caps short expiries */
+export function defaultExpirationMicros(days = 2): number {
   return Date.now() * 1000 + days * 24 * 60 * 60 * 1_000_000;
 }
 

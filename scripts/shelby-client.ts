@@ -3,10 +3,10 @@ import { Network } from '@aptos-labs/ts-sdk';
 
 /** Browser Shelby client — download only (upload goes through backend relay). */
 function resolveNetwork(): Network {
-  const n = (import.meta as any).env?.VITE_APTOS_NETWORK?.toLowerCase?.() || 'testnet';
-  if (n === 'shelbynet') return Network.SHELBYNET;
+  const n = (import.meta as any).env?.VITE_APTOS_NETWORK?.toLowerCase?.() || 'shelbynet';
+  if (n === 'testnet') return Network.TESTNET;
   if (n === 'local') return Network.LOCAL;
-  return Network.TESTNET;
+  return Network.SHELBYNET;
 }
 
 let _client: ShelbyClient | null = null;
