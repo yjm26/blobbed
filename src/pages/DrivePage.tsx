@@ -12,6 +12,7 @@ import {
   listFolders,
   listAllFiles,
   removeFile,
+  deleteFolder,
   getFolder,
   countFilesInFolder,
   hydrateLibrary,
@@ -40,7 +41,8 @@ function formatSize(bytes: number): string {
 type DialogState =
   | null
   | { type: 'folder' }
-  | { type: 'delete'; fileId: string; name: string };
+  | { type: 'delete'; fileId: string; name: string }
+  | { type: 'delete-folder'; folderId: string; name: string; fileCount: number };
 
 export default function DrivePage() {
   const nav = useNavigate();
@@ -242,21 +244,63 @@ export default function DrivePage() {
     });
   }
 
+  function askDeleteFolder(id: string) {
+    const folder = getFolder(owner, id);
+    if (!folder) return;
+    setDialog({
+      type: 'delete-folder',
+      folderId: id,
+      name: folder.name,
+      fileCount: countFilesInFolder(owner, id),
+    });
+  }
+
   async function confirmDelete() {
-    if (!dialog || dialog.type !== 'delete' || dialogBusy) return;
-    setDialogBusy(true);
-    try {
-      await removeFile(owner, dialog.fileId);
-      setStatus({ msg: 'Removed from library', kind: 'ok' });
-      setDialog(null);
-      refresh();
-    } catch (err) {
-      setStatus({
-        msg: 'Delete failed: ' + (err instanceof Error ? err.message : String(err)),
-        kind: 'err',
-      });
-    } finally {
-      setDialogBusy(false);
+    if (!dialog || dialogBusy) return;
+
+    if (dialog.type === 'delete') {
+      setDialogBusy(true);
+      try {
+        await removeFile(owner, dialog.fileId);
+        setStatus({ msg: 'Removed from library', kind: 'ok' });
+        setDialog(null);
+        refresh();
+      } catch (err) {
+        setStatus({
+          msg: 'Delete failed: ' + (err instanceof Error ? err.message : String(err)),
+          kind: 'err',
+        });
+      } finally {
+        setDialogBusy(false);
+      }
+      return;
+    }
+
+    if (dialog.type === 'delete-folder') {
+      setDialogBusy(true);
+      try {
+        const wasOpen = folderId === dialog.folderId;
+        await deleteFolder(owner, dialog.folderId);
+        if (wasOpen) setFolderId(null);
+        setStatus({
+          msg:
+            dialog.fileCount > 0
+              ? `Folder removed · ${dialog.fileCount} file${dialog.fileCount === 1 ? '' : 's'} moved to All files`
+              : 'Folder removed',
+          kind: 'ok',
+        });
+        setDialog(null);
+        refresh();
+      } catch (err) {
+        setStatus({
+          msg:
+            'Delete folder failed: ' +
+            (err instanceof Error ? err.message : String(err)),
+          kind: 'err',
+        });
+      } finally {
+        setDialogBusy(false);
+      }
     }
   }
 
@@ -399,13 +443,22 @@ export default function DrivePage() {
             </div>
             <div className="app-stage-actions">
               {folderId ? (
-                <button
-                  type="button"
-                  className="app-btn-ghost"
-                  onClick={() => void onShareFolder()}
-                >
-                  Share folder
-                </button>
+                <>
+                  <button
+                    type="button"
+                    className="app-btn-ghost"
+                    onClick={() => void onShareFolder()}
+                  >
+                    Share folder
+                  </button>
+                  <button
+                    type="button"
+                    className="app-btn-ghost app-btn-ghost-danger"
+                    onClick={() => askDeleteFolder(folderId)}
+                  >
+                    Delete folder
+                  </button>
+                </>
               ) : null}
               <button
                 type="button"
@@ -451,18 +504,31 @@ export default function DrivePage() {
           {!folderId && folders.length > 0 ? (
             <div className="drive-folder-grid">
               {folders.map((f) => (
-                <button
-                  key={f.id}
-                  type="button"
-                  className="drive-folder-card"
-                  onClick={() => setFolderId(f.id)}
-                >
-                  <span className="drive-folder-icon">▢</span>
-                  <span className="drive-folder-name">{f.name}</span>
-                  <span className="drive-folder-meta">
-                    {countFilesInFolder(owner, f.id)} items
-                  </span>
-                </button>
+                <div key={f.id} className="drive-folder-card-wrap">
+                  <button
+                    type="button"
+                    className="drive-folder-card"
+                    onClick={() => setFolderId(f.id)}
+                  >
+                    <span className="drive-folder-icon">▢</span>
+                    <span className="drive-folder-name">{f.name}</span>
+                    <span className="drive-folder-meta">
+                      {countFilesInFolder(owner, f.id)} items
+                    </span>
+                  </button>
+                  <button
+                    type="button"
+                    className="drive-folder-delete"
+                    title={`Delete ${f.name}`}
+                    aria-label={`Delete folder ${f.name}`}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      askDeleteFolder(f.id);
+                    }}
+                  >
+                    Delete
+                  </button>
+                </div>
               ))}
             </div>
           ) : null}
@@ -612,14 +678,53 @@ export default function DrivePage() {
                   </button>
                 </div>
               </>
+            ) : dialog.type === 'delete-folder' ? (
+              <>
+                <h2 id="app-modal-title" className="app-modal-title">
+                  Delete folder?
+                </h2>
+                <p className="app-modal-sub">
+                  <strong className="app-modal-em">{dialog.name}</strong> will be
+                  removed.
+                  {dialog.fileCount > 0 ? (
+                    <>
+                      {' '}
+                      Its {dialog.fileCount} file
+                      {dialog.fileCount === 1 ? '' : 's'} move to{' '}
+                      <strong className="app-modal-em">All files</strong> (not
+                      deleted from Shelby).
+                    </>
+                  ) : (
+                    <> It’s empty.</>
+                  )}
+                </p>
+                <div className="app-modal-actions">
+                  <button
+                    type="button"
+                    className="app-modal-btn app-modal-btn-ghost"
+                    disabled={dialogBusy}
+                    onClick={() => setDialog(null)}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    className="app-modal-btn app-modal-btn-danger"
+                    disabled={dialogBusy}
+                    onClick={() => void confirmDelete()}
+                  >
+                    {dialogBusy ? 'Deleting…' : 'Delete folder'}
+                  </button>
+                </div>
+              </>
             ) : (
               <>
                 <h2 id="app-modal-title" className="app-modal-title">
                   Remove file?
                 </h2>
                 <p className="app-modal-sub">
-                  <strong className="app-modal-em">{dialog.name}</strong> will leave your
-                  library index. The blob stays on Shelby until it expires.
+                  <strong className="app-modal-em">{dialog.name}</strong> will leave
+                  your library index. The blob stays on Shelby until it expires.
                 </p>
                 <div className="app-modal-actions">
                   <button
