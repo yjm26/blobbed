@@ -5,8 +5,9 @@ import {
 } from './chunked-crypto';
 import { generateThumbDataUrl } from './thumbs';
 import { addFile } from './library-store';
-import { ensureVaultUnlocked } from './vault';
+import { ensureVaultUnlocked, sealThumb } from './vault';
 import { wrapFileKey } from './key-wrap';
+import { createOwnerAuth, sha256Hex } from './owner-auth';
 import type { FileMetadata, UploadResult, WalletAccount } from './types';
 
 function uint8ToBase64(bytes: Uint8Array): string {
@@ -46,7 +47,7 @@ export async function uploadFile(
   const data = new Uint8Array(arrayBuffer);
 
   report('Thumbnail', 0.1);
-  const thumbDataUrl = await generateThumbDataUrl(file);
+  const plainThumb = await generateThumbDataUrl(file);
 
   const key = generateKey();
   const format = chooseEncFormat(file);
@@ -58,7 +59,6 @@ export async function uploadFile(
       report(p.detail || 'Encrypt', 0.15 + p.ratio * 0.45);
     });
   } else {
-    // keep legacy path for tiny images
     const encrypted = await encryptFile(data, key);
     combined = new Uint8Array(encrypted.iv.length + encrypted.ciphertext.length);
     combined.set(encrypted.iv);
@@ -66,9 +66,12 @@ export async function uploadFile(
     report('Encrypted', 0.55);
   }
 
-  report('Upload to Shelby', 0.6);
+  report('Sign upload', 0.58);
   const encryptedBase64 = uint8ToBase64(combined);
+  const payloadHash = await sha256Hex(combined);
+  const auth = await createOwnerAuth(wallet, 'upload', payloadHash);
 
+  report('Upload to Shelby', 0.62);
   const res = await fetch('/api/upload', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -79,6 +82,7 @@ export async function uploadFile(
       fileSize: file.size,
       folderId,
       encFormat: format,
+      auth,
     }),
   });
 
@@ -89,7 +93,11 @@ export async function uploadFile(
         ? ' (server needs APTOS_PRIVATE_KEY)'
         : body.code === 'INSUFFICIENT_FUNDS'
           ? ' (fund ShelbyUSD on shelbynet)'
-          : '';
+          : body.code === 'AUTH_REQUIRED' || body.code?.startsWith?.('AUTH_')
+            ? ' (wallet auth failed — reconnect)'
+            : body.code === 'RATE_LIMIT'
+              ? ' (rate limited)'
+              : '';
     throw new Error((body.error || 'Upload failed') + extra);
   }
 
@@ -97,9 +105,11 @@ export async function uploadFile(
   const storageAccount = body.storageAccount as string;
   const blobName = (body.blobName || body.blobHash) as string;
   const keyB64 = keyToBase64(key);
-  // Wallet-wrap DEK before it hits Neon / localStorage (server never sees raw key)
   const vaultKey = await ensureVaultUnlocked(wallet);
   const storedKey = await wrapFileKey(key, vaultKey);
+  const sealedThumb = plainThumb
+    ? await sealThumb(plainThumb, wallet)
+    : undefined;
   const id = crypto.randomUUID();
 
   report('Save library', 0.92);
@@ -116,7 +126,7 @@ export async function uploadFile(
     createdAt: new Date().toISOString(),
     folderId,
     encFormat: format,
-    thumbDataUrl: thumbDataUrl || undefined,
+    thumbDataUrl: sealedThumb,
   };
 
   await addFile(wallet.address, meta);
@@ -126,7 +136,7 @@ export async function uploadFile(
     storageAccount,
     blobName,
     blobHash: blobName,
-    key: keyB64, // raw DEK for caller (share immediately); not what we store
+    key: keyB64,
     fileId: id,
   };
 }

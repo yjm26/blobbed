@@ -13,7 +13,7 @@ export default function GatePage() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [sub, setSub] = useState('Connect a wallet to enter');
-  const [hintHtml, setHintHtml] = useState('Petra or any Aptos wallet · shelbynet');
+  const [needPetra, setNeedPetra] = useState(false);
   const [checking, setChecking] = useState(true);
   const [entering, setEntering] = useState(false);
   const [enterLabel, setEnterLabel] = useState('Entering Blobbed');
@@ -48,6 +48,7 @@ export default function GatePage() {
 
   async function onConnect() {
     setError('');
+    setNeedPetra(false);
     setBusy(true);
     setSub('Connecting…');
     try {
@@ -64,11 +65,7 @@ export default function GatePage() {
       setSub('Connect a wallet to enter');
       setBusy(false);
       setEntering(false);
-      if (/not installed/i.test(msg)) {
-        setHintHtml(
-          'Install <a href="https://petra.app/" target="_blank" rel="noopener">Petra</a> (Wallet Standard) then retry'
-        );
-      }
+      if (/not installed/i.test(msg)) setNeedPetra(true);
     }
   }
 
@@ -96,7 +93,19 @@ export default function GatePage() {
         >
           {busy ? 'Connecting…' : checking ? '…' : 'Connect wallet'}
         </button>
-        <p className="gate-hint" dangerouslySetInnerHTML={{ __html: hintHtml }} />
+        <p className="gate-hint">
+          {needPetra ? (
+            <>
+              Install{' '}
+              <a href="https://petra.app/" target="_blank" rel="noopener noreferrer">
+                Petra
+              </a>{' '}
+              (Wallet Standard) then retry
+            </>
+          ) : (
+            'Petra or any Aptos wallet · shelbynet'
+          )}
+        </p>
         {error ? <p className="gate-error">{error}</p> : null}
         {!checking && !entering ? <TrustPanel context="gate" /> : null}
       </main>

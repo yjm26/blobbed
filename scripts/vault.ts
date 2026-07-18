@@ -1,9 +1,11 @@
 /**
  * Session vault: one wallet signMessage unlocks a derived AES key used to
- * wrap/unwrap file DEKs at rest (Neon / localStorage).
+ * wrap/unwrap file DEKs + thumbs at rest (Neon / localStorage).
  *
- * - Vault key lives only in memory + sessionStorage for this tab session
- * - Cleared on disconnect
+ * Security:
+ * - Vault key lives ONLY in process memory (not sessionStorage / localStorage)
+ * - Refresh / new tab → must sign again
+ * - Cleared on disconnect / lock
  * - Share links still use raw DEKs in #fragment (never server-side)
  */
 
@@ -11,8 +13,12 @@ import { signMessage } from './aptos-client';
 import {
   deriveVaultKey,
   isWrappedKey,
+  isWrappedThumb,
+  isPlainThumbDataUrl,
   unwrapFileKey,
   wrapFileKey,
+  wrapThumbDataUrl,
+  unwrapThumbDataUrl,
   rawKeyToBase64,
   base64ToRawKey,
   type KeyEncoding,
@@ -26,7 +32,8 @@ export const VAULT_MESSAGE =
 /** Fixed nonce → deterministic signature for key derivation (same wallet). */
 export const VAULT_NONCE = 'blobbed-vault-v1';
 
-const SESSION_PREFIX = 'blobbed_vault_sig_v1_';
+/** Legacy prefix — purged on clear so old sessions do not leave sigs around */
+const LEGACY_SESSION_PREFIX = 'blobbed_vault_sig_v1_';
 
 type VaultState = {
   address: string;
@@ -34,10 +41,6 @@ type VaultState = {
 };
 
 let mem: VaultState | null = null;
-
-function sessionKey(address: string): string {
-  return SESSION_PREFIX + address.trim().toLowerCase();
-}
 
 export function isVaultUnlocked(address?: string): boolean {
   if (!mem) return false;
@@ -53,27 +56,23 @@ export function lockVault(): void {
   mem = null;
 }
 
-/** Drop session cache for address (and clear all vault sigs on full logout). */
-export function clearVaultSession(address?: string): void {
-  mem = null;
-  if (address) {
-    try {
-      sessionStorage.removeItem(sessionKey(address));
-    } catch {
-      /* */
-    }
-    return;
-  }
+function purgeLegacySigStorage(): void {
   try {
     const kill: string[] = [];
     for (let i = 0; i < sessionStorage.length; i++) {
       const k = sessionStorage.key(i);
-      if (k && k.startsWith(SESSION_PREFIX)) kill.push(k);
+      if (k && k.startsWith(LEGACY_SESSION_PREFIX)) kill.push(k);
     }
     for (const k of kill) sessionStorage.removeItem(k);
   } catch {
     /* */
   }
+}
+
+/** Drop in-memory vault + purge any legacy signature caches. */
+export function clearVaultSession(_address?: string): void {
+  mem = null;
+  purgeLegacySigStorage();
 }
 
 async function unlockFromSignature(
@@ -82,17 +81,14 @@ async function unlockFromSignature(
 ): Promise<CryptoKey> {
   const key = await deriveVaultKey(address, signature);
   mem = { address: address.trim().toLowerCase(), key };
-  try {
-    sessionStorage.setItem(sessionKey(address), signature);
-  } catch {
-    /* private mode */
-  }
+  // Intentionally NOT persisting signature anywhere durable.
+  purgeLegacySigStorage();
   return key;
 }
 
 /**
- * Unlock vault for owner. Reuses session signature when possible.
- * May prompt wallet signMessage once per browser tab session.
+ * Unlock vault for owner. Memory-only — prompts sign when not unlocked
+ * (including after full page reload).
  */
 export async function ensureVaultUnlocked(
   wallet: WalletAccount,
@@ -105,15 +101,8 @@ export async function ensureVaultUnlocked(
     return mem.key;
   }
 
-  if (!opts?.forcePrompt) {
-    try {
-      const cached = sessionStorage.getItem(sessionKey(address));
-      if (cached) {
-        return unlockFromSignature(address, cached);
-      }
-    } catch {
-      /* */
-    }
+  if (opts?.forcePrompt) {
+    mem = null;
   }
 
   const signature = await signMessage(VAULT_MESSAGE, { nonce: VAULT_NONCE });
@@ -153,47 +142,110 @@ export async function wrapRawKeyBase64(
   return wrapFileKey(raw, vault);
 }
 
+/** Encrypt a plain data-URL thumb for storage */
+export async function sealThumb(
+  dataUrl: string | null | undefined,
+  wallet: WalletAccount
+): Promise<string | undefined> {
+  if (!dataUrl) return undefined;
+  if (isWrappedThumb(dataUrl)) return dataUrl;
+  const vault = await ensureVaultUnlocked(wallet);
+  return wrapThumbDataUrl(dataUrl, vault);
+}
+
+/** Decrypt thumb for UI grid (null if locked / missing) */
+export async function openThumb(
+  stored: string | undefined | null,
+  wallet?: WalletAccount | null
+): Promise<string | null> {
+  if (!stored) return null;
+  if (stored.startsWith('data:')) return stored;
+  let vault = getVaultKey();
+  if (!vault && wallet) {
+    try {
+      vault = await ensureVaultUnlocked(wallet);
+    } catch {
+      return null;
+    }
+  }
+  if (!vault) return null;
+  try {
+    return await unwrapThumbDataUrl(stored, vault);
+  } catch {
+    return null;
+  }
+}
+
 export function keyEncodingOf(file: FileMetadata): KeyEncoding {
   return detectKeyEncoding(file.encryptedKey || '');
 }
 
 /**
- * Lazy migrate legacy plain keys → wallet-wrapped. Best-effort; skips on error.
- * Returns count migrated.
+ * Lazy migrate legacy plain keys + plain thumbs → wallet-wrapped.
  */
 export async function migratePlainKeys(
   wallet: WalletAccount
-): Promise<{ migrated: number; failed: number }> {
+): Promise<{ migrated: number; failed: number; thumbs: number }> {
   const vault = await ensureVaultUnlocked(wallet);
   const files = listAllFiles(wallet.address);
   let migrated = 0;
   let failed = 0;
+  let thumbs = 0;
 
   for (const f of files) {
-    if (!f.encryptedKey || isWrappedKey(f.encryptedKey)) continue;
-    try {
-      const raw = await unwrapFileKey(f.encryptedKey, null);
-      const wrapped = await wrapFileKey(raw, vault);
-      const next: FileMetadata = { ...f, encryptedKey: wrapped };
-      await addFile(wallet.address, next);
-      migrated++;
-    } catch {
-      failed++;
+    let next: FileMetadata | null = null;
+
+    if (f.encryptedKey && !isWrappedKey(f.encryptedKey)) {
+      try {
+        const raw = await unwrapFileKey(f.encryptedKey, null);
+        const wrapped = await wrapFileKey(raw, vault);
+        next = { ...(next || f), encryptedKey: wrapped };
+        migrated++;
+      } catch {
+        failed++;
+      }
+    }
+
+    const thumbSrc = (next || f).thumbDataUrl;
+    if (isPlainThumbDataUrl(thumbSrc)) {
+      try {
+        const sealed = await wrapThumbDataUrl(thumbSrc!, vault);
+        next = { ...(next || f), thumbDataUrl: sealed };
+        thumbs++;
+      } catch {
+        // drop plaintext thumb rather than keep leaking
+        next = { ...(next || f), thumbDataUrl: undefined };
+        thumbs++;
+      }
+    }
+
+    if (next) {
+      try {
+        await addFile(wallet.address, next);
+      } catch {
+        failed++;
+      }
     }
   }
 
-  return { migrated, failed };
+  return { migrated, failed, thumbs };
 }
 
 export function countKeyEncodings(files: FileMetadata[]): {
   plain: number;
   wrapped: number;
+  plainThumbs: number;
+  wrappedThumbs: number;
 } {
   let plain = 0;
   let wrapped = 0;
+  let plainThumbs = 0;
+  let wrappedThumbs = 0;
   for (const f of files) {
     if (isWrappedKey(f.encryptedKey || '')) wrapped++;
     else if (f.encryptedKey) plain++;
+    if (isPlainThumbDataUrl(f.thumbDataUrl)) plainThumbs++;
+    else if (f.thumbDataUrl && isWrappedThumb(f.thumbDataUrl)) wrappedThumbs++;
   }
-  return { plain, wrapped };
+  return { plain, wrapped, plainThumbs, wrappedThumbs };
 }

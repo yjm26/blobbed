@@ -8,8 +8,13 @@ import {
   signatureToBytes,
   rawKeyToBase64,
   base64ToRawKey,
+  wrapThumbDataUrl,
+  unwrapThumbDataUrl,
+  isWrappedThumb,
+  isPlainThumbDataUrl,
 } from '../scripts/key-wrap';
 import { generateKey, keyToBase64, base64ToKey } from '../scripts/crypto';
+import { buildAuthMessage, sha256Hex } from '../scripts/owner-auth';
 
 describe('key-wrap', () => {
   it('detects plain vs wallet-v1', () => {
@@ -30,7 +35,6 @@ describe('key-wrap', () => {
     const sig = '0x' + 'cd'.repeat(64);
     const a = await deriveVaultKey('0xABC', sig);
     const b = await deriveVaultKey('0xabc', sig);
-    // wrap same DEK twice with both keys → both decrypt
     const dek = generateKey();
     const w1 = await wrapFileKey(dek, a);
     const plain = await unwrapFileKey(w1, b);
@@ -73,5 +77,35 @@ describe('key-wrap', () => {
     const b64 = rawKeyToBase64(dek);
     expect(base64ToRawKey(b64)).toEqual(dek);
     expect(base64ToKey(b64)).toEqual(dek);
+  });
+
+  it('thumb wrap / unwrap', async () => {
+    const vault = await deriveVaultKey('0xthumb', '0x' + '33'.repeat(64));
+    const dataUrl = 'data:image/jpeg;base64,/9j/4AAQSkZJRg==';
+    expect(isPlainThumbDataUrl(dataUrl)).toBe(true);
+    const sealed = await wrapThumbDataUrl(dataUrl, vault);
+    expect(isWrappedThumb(sealed)).toBe(true);
+    expect(sealed.startsWith('data:')).toBe(false);
+    const open = await unwrapThumbDataUrl(sealed, vault);
+    expect(open).toBe(dataUrl);
+  });
+});
+
+describe('owner-auth message', () => {
+  it('buildAuthMessage is stable', () => {
+    const m = buildAuthMessage({
+      address: '0xAbC',
+      purpose: 'upload',
+      payloadHash: 'aa',
+      timestamp: 1,
+    });
+    expect(m).toContain('address: 0xabc');
+    expect(m).toContain('purpose: upload');
+    expect(m).toContain('hash: aa');
+  });
+
+  it('sha256Hex', async () => {
+    const h = await sha256Hex('abc');
+    expect(h).toHaveLength(64);
   });
 });

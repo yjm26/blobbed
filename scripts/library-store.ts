@@ -1,4 +1,6 @@
 import type { FileMetadata, FolderMetadata, LibrarySnapshot } from './types';
+import type { WalletAccount } from './types';
+import { createOwnerAuth, sha256Hex } from './owner-auth';
 
 function keyFor(owner: string): string {
   return `blobbed_lib_v1_${owner.toLowerCase()}`;
@@ -13,8 +15,28 @@ const cache = new Map<string, LibrarySnapshot>();
 
 let lastBackend: 'neon' | 'memory' | 'local' | 'unknown' = 'unknown';
 
+/** HMAC library session (memory only — not sessionStorage). */
+let librarySession: { address: string; token: string; exp: number } | null = null;
+let authWallet: WalletAccount | null = null;
+
 export function getLibraryBackend(): typeof lastBackend {
   return lastBackend;
+}
+
+export function setLibraryAuthWallet(wallet: WalletAccount | null): void {
+  authWallet = wallet;
+  if (!wallet) librarySession = null;
+  else if (
+    librarySession &&
+    librarySession.address !== wallet.address.trim().toLowerCase()
+  ) {
+    librarySession = null;
+  }
+}
+
+export function clearLibrarySession(): void {
+  librarySession = null;
+  authWallet = null;
 }
 
 function cacheKey(owner: string): string {
@@ -71,14 +93,76 @@ async function apiGet(ownerAddress: string): Promise<LibrarySnapshot | null> {
   }
 }
 
-async function apiPost(body: Record<string, unknown>): Promise<Record<string, unknown> | null> {
+/**
+ * Ensure library session ticket (1 wallet sign / ~2h).
+ * Call after vault unlock on drive boot.
+ */
+export async function ensureLibrarySession(
+  wallet: WalletAccount
+): Promise<string> {
+  authWallet = wallet;
+  const addr = wallet.address.trim().toLowerCase();
+  if (
+    librarySession &&
+    librarySession.address === addr &&
+    librarySession.exp > Date.now() + 60_000
+  ) {
+    return librarySession.token;
+  }
+
+  const payloadHash = await sha256Hex(`session|${addr}`);
+  const auth = await createOwnerAuth(wallet, 'session', payloadHash);
+  const res = await fetch('/api/library', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      op: 'session',
+      ownerAddress: wallet.address,
+      auth,
+    }),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok || !data.token) {
+    throw new Error(
+      (data as { error?: string }).error ||
+        'Library session failed — sign rejected or server auth error'
+    );
+  }
+  librarySession = {
+    address: addr,
+    token: String(data.token),
+    exp: Number(data.exp) || Date.now() + 2 * 60 * 60 * 1000,
+  };
+  return librarySession.token;
+}
+
+async function apiPost(
+  body: Record<string, unknown>
+): Promise<Record<string, unknown> | null> {
   try {
+    const payload = { ...body };
+    if (librarySession?.token && librarySession.exp > Date.now()) {
+      payload.sessionToken = librarySession.token;
+    } else if (authWallet && body.op && body.op !== 'session') {
+      // best-effort mint session
+      try {
+        await ensureLibrarySession(authWallet);
+        if (librarySession?.token) payload.sessionToken = librarySession.token;
+      } catch {
+        /* local-only fallback */
+      }
+    }
+
     const res = await fetch('/api/library', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
+      body: JSON.stringify(payload),
     });
-    if (!res.ok) return null;
+    if (!res.ok) {
+      // session expired → clear so next call re-auths
+      if (res.status === 401) librarySession = null;
+      return null;
+    }
     const data = (await res.json()) as Record<string, unknown>;
     if (data.backend === 'neon' || data.backend === 'memory') {
       lastBackend = data.backend as 'neon' | 'memory';
@@ -125,7 +209,6 @@ export async function hydrateLibrary(ownerAddress: string): Promise<LibrarySnaps
     }
   }
 
-  // Prefer remote when it has data; else local
   const lib =
     !remoteEmpty
       ? remote

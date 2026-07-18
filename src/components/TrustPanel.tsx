@@ -7,7 +7,12 @@ type Props = {
   compact?: boolean;
   vaultOk?: boolean;
   backend?: 'neon' | 'memory' | 'local' | 'unknown';
-  keyStats?: { plain: number; wrapped: number };
+  keyStats?: {
+    plain: number;
+    wrapped: number;
+    plainThumbs?: number;
+    wrappedThumbs?: number;
+  };
   onUnlock?: () => void;
   className?: string;
 };
@@ -44,8 +49,13 @@ export default function TrustPanel({
             lose access.
           </li>
           <li>
-            <strong>Upload gas</strong> is paid by a service wallet today (not
-            your Petra). Wallet = identity.
+            <strong>Upload</strong> needs your wallet signature (owner auth) so
+            strangers cannot burn the service wallet. Gas is still sponsored on
+            shelbynet for now.
+          </li>
+          <li>
+            <strong>Vault key</strong> stays in RAM only — refresh = sign again.
+            Thumbs sealed as <code>bt1.</code>; plain previews stripped server-side.
           </li>
         </ul>
       </div>
@@ -106,7 +116,11 @@ export default function TrustPanel({
         <span>
           {vaultOk ? 'Vault unlocked' : 'Vault locked'}
           {keyStats
-            ? ` · ${keyStats.wrapped} wrapped${keyStats.plain ? ` · ${keyStats.plain} legacy` : ''}`
+            ? ` · ${keyStats.wrapped} wrapped${keyStats.plain ? ` · ${keyStats.plain} legacy` : ''}${
+                keyStats.plainThumbs
+                  ? ` · ${keyStats.plainThumbs} plain thumbs`
+                  : ''
+              }`
             : ''}
           {` · meta: ${be}`}
         </span>

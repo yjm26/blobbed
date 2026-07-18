@@ -280,10 +280,17 @@ export async function disconnectWallet(): Promise<void> {
  * Sign an arbitrary message (AIP-62 aptos:signMessage).
  * Pass a fixed `nonce` when the signature must be reproducible (vault key derive).
  */
-export async function signMessage(
+export type SignedMessage = {
+  signature: string;
+  fullMessage: string;
+  nonce: string;
+  message: string;
+};
+
+export async function signMessageDetailed(
   message: string,
   opts?: { nonce?: string }
-): Promise<string> {
+): Promise<SignedMessage> {
   if (!hasAppSession()) throw new Error('Wallet not connected');
 
   const preferred = sessionStorage.getItem(STORAGE_WALLET_NAME);
@@ -293,9 +300,10 @@ export async function signMessage(
   const sign = wallet.features['aptos:signMessage']?.signMessage;
   if (!sign) throw new Error('Wallet does not support signMessage');
 
+  const nonce = opts?.nonce ?? String(Date.now());
   const res = await sign({
     message,
-    nonce: opts?.nonce ?? String(Date.now()),
+    nonce,
   });
   if (!isApproved(res) || !res.args) {
     throw new Error('Sign rejected');
@@ -303,10 +311,34 @@ export async function signMessage(
   const out = res.args as {
     signature?: { toString(): string } | string;
     fullMessage?: string;
+    nonce?: string;
+    message?: string;
   };
   const sig = out.signature;
   if (sig == null) throw new Error('Wallet returned no signature');
-  return typeof sig === 'string' ? sig : sig?.toString?.() || String(sig);
+  const signature = typeof sig === 'string' ? sig : sig?.toString?.() || String(sig);
+
+  // Wallets should return fullMessage (APTOS\nmessage:...\nnonce:...)
+  let fullMessage = out.fullMessage || '';
+  if (!fullMessage) {
+    // Reconstruct common Aptos wallet standard full message
+    fullMessage = `APTOS\nmessage: ${message}\nnonce: ${nonce}`;
+  }
+
+  return {
+    signature,
+    fullMessage,
+    nonce: out.nonce || nonce,
+    message: out.message || message,
+  };
+}
+
+export async function signMessage(
+  message: string,
+  opts?: { nonce?: string }
+): Promise<string> {
+  const detailed = await signMessageDetailed(message, opts);
+  return detailed.signature;
 }
 
 export function listDetectedWallets(): string[] {

@@ -4,11 +4,16 @@
  * plain   — base64(32-byte AES key)  [legacy MVP — server/DB can read]
  * bw1.…   — AES-GCM(vaultKey, DEK)   [wallet-derived vault key]
  *
+ * Thumbs at rest:
+ * plain data: URL — legacy leak (plaintext preview)
+ * bt1.… — AES-GCM(vaultKey, utf8 data URL)
+ *
  * Share links always carry the *raw* DEK in the URL fragment (capability).
  * Never put a bw1. blob into a share fragment.
  */
 
 const PREFIX_V1 = 'bw1.';
+const PREFIX_THUMB = 'bt1.';
 
 export type KeyEncoding = 'plain' | 'wallet-v1';
 
@@ -19,6 +24,15 @@ export function detectKeyEncoding(stored: string): KeyEncoding {
 
 export function isWrappedKey(stored: string): boolean {
   return detectKeyEncoding(stored) === 'wallet-v1';
+}
+
+export function isWrappedThumb(stored: string): boolean {
+  return stored.startsWith(PREFIX_THUMB);
+}
+
+export function isPlainThumbDataUrl(stored: string | undefined | null): boolean {
+  if (!stored) return false;
+  return stored.startsWith('data:');
 }
 
 function bytesToB64(bytes: Uint8Array): string {
@@ -32,6 +46,10 @@ function b64ToBytes(b64: string): Uint8Array {
   const out = new Uint8Array(bin.length);
   for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
   return out;
+}
+
+function toArrayBuffer(u8: Uint8Array): ArrayBuffer {
+  return u8.buffer.slice(u8.byteOffset, u8.byteOffset + u8.byteLength) as ArrayBuffer;
 }
 
 /** Normalize wallet signature strings (hex / base64 / 0x-hex). */
@@ -55,7 +73,6 @@ export function signatureToBytes(sig: string): Uint8Array {
     const pad = b64.length % 4 === 0 ? '' : '='.repeat(4 - (b64.length % 4));
     return b64ToBytes(b64 + pad);
   } catch {
-    // last resort: utf-8 of the string
     return new TextEncoder().encode(s);
   }
 }
@@ -84,6 +101,44 @@ export async function deriveVaultKey(
   ]);
 }
 
+async function aesGcmEncrypt(
+  vaultKey: CryptoKey,
+  plain: Uint8Array
+): Promise<string> {
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const ct = new Uint8Array(
+    await crypto.subtle.encrypt(
+      { name: 'AES-GCM', iv: toArrayBuffer(iv) },
+      vaultKey,
+      toArrayBuffer(plain)
+    )
+  );
+  const packed = new Uint8Array(iv.length + ct.length);
+  packed.set(iv);
+  packed.set(ct, iv.length);
+  return bytesToB64(packed);
+}
+
+async function aesGcmDecrypt(
+  vaultKey: CryptoKey,
+  packedB64: string
+): Promise<Uint8Array> {
+  const packed = b64ToBytes(packedB64);
+  if (packed.length < 12 + 16) throw new Error('Invalid wrapped payload');
+  const iv = packed.slice(0, 12);
+  const ct = packed.slice(12);
+  try {
+    const plain = await crypto.subtle.decrypt(
+      { name: 'AES-GCM', iv: toArrayBuffer(iv) },
+      vaultKey,
+      toArrayBuffer(ct)
+    );
+    return new Uint8Array(plain);
+  } catch {
+    throw new Error('Cannot unwrap — wrong wallet or corrupted data');
+  }
+}
+
 /** Wrap raw 32-byte file DEK → storage string */
 export async function wrapFileKey(
   rawKey: Uint8Array,
@@ -92,22 +147,7 @@ export async function wrapFileKey(
   if (rawKey.length !== 32) {
     throw new Error('File key must be 32 bytes');
   }
-  const iv = crypto.getRandomValues(new Uint8Array(12));
-  const dekBuf = rawKey.buffer.slice(
-    rawKey.byteOffset,
-    rawKey.byteOffset + rawKey.byteLength
-  ) as ArrayBuffer;
-  const ct = new Uint8Array(
-    await crypto.subtle.encrypt(
-      { name: 'AES-GCM', iv: iv as BufferSource },
-      vaultKey,
-      dekBuf
-    )
-  );
-  const packed = new Uint8Array(iv.length + ct.length);
-  packed.set(iv);
-  packed.set(ct, iv.length);
-  return PREFIX_V1 + bytesToB64(packed);
+  return PREFIX_V1 + (await aesGcmEncrypt(vaultKey, rawKey));
 }
 
 /** Unwrap storage string → raw 32-byte DEK (handles legacy plain) */
@@ -129,27 +169,39 @@ export async function unwrapFileKey(
     throw new Error('Vault locked — sign with wallet to unlock keys');
   }
 
-  const packed = b64ToBytes(stored.slice(PREFIX_V1.length));
-  if (packed.length < 12 + 16) {
-    throw new Error('Invalid wrapped key');
+  const raw = await aesGcmDecrypt(vaultKey, stored.slice(PREFIX_V1.length));
+  if (raw.length !== 32) throw new Error('Unwrapped key wrong size');
+  return raw;
+}
+
+/** Encrypt thumb data URL for meta storage */
+export async function wrapThumbDataUrl(
+  dataUrl: string,
+  vaultKey: CryptoKey
+): Promise<string> {
+  if (!dataUrl.startsWith('data:')) {
+    throw new Error('Thumb must be a data URL before wrap');
   }
-  const iv = packed.slice(0, 12);
-  const ct = packed.slice(12);
-  try {
-    const plain = await crypto.subtle.decrypt(
-      {
-        name: 'AES-GCM',
-        iv: iv.buffer.slice(iv.byteOffset, iv.byteOffset + iv.byteLength) as ArrayBuffer,
-      },
-      vaultKey,
-      ct.buffer.slice(ct.byteOffset, ct.byteOffset + ct.byteLength) as ArrayBuffer
-    );
-    const raw = new Uint8Array(plain);
-    if (raw.length !== 32) throw new Error('Unwrapped key wrong size');
-    return raw;
-  } catch {
-    throw new Error('Cannot unwrap key — wrong wallet or corrupted wrap');
+  const bytes = new TextEncoder().encode(dataUrl);
+  return PREFIX_THUMB + (await aesGcmEncrypt(vaultKey, bytes));
+}
+
+/**
+ * Resolve stored thumb → displayable data URL.
+ * plain data: passthrough (legacy); bt1. decrypts; else null
+ */
+export async function unwrapThumbDataUrl(
+  stored: string | undefined | null,
+  vaultKey: CryptoKey | null
+): Promise<string | null> {
+  if (!stored) return null;
+  if (stored.startsWith('data:')) return stored;
+  if (!isWrappedThumb(stored)) return null;
+  if (!vaultKey) {
+    throw new Error('Vault locked — cannot decrypt thumb');
   }
+  const plain = await aesGcmDecrypt(vaultKey, stored.slice(PREFIX_THUMB.length));
+  return new TextDecoder().decode(plain);
 }
 
 /** plain base64 DEK → for share fragments / decrypt */

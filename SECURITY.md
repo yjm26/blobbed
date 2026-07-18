@@ -1,65 +1,74 @@
-# Blobbed security model (MVP)
+# Blobbed security model
 
-Not a formal audit. Product positioning: **encrypted-first drive** on Shelby, not “we never see anything.”
+Not a formal audit. Encrypted-first drive on Shelby — honest about residual risk.
 
 ## Data paths
 
 | Data | Where | Who can read |
 |------|--------|----------------|
-| File plaintext | Browser memory only during encrypt/decrypt | User device |
-| Ciphertext blob | Shelby storage nodes | Anyone who can fetch blob bytes (useless without DEK) |
-| File DEK (raw) | Share URL `#fragment`; briefly in browser when unwrapped | Anyone with the share link |
-| File DEK (at rest in library) | Neon / localStorage as `bw1.…` wallet-wrapped blob | Server stores ciphertext of DEK; unwrap needs wallet signature-derived vault key |
-| Names, sizes, thumbs, blob pointers | Neon library meta | Backend + DB operators |
-| Wallet address | Session + library owner field | Backend (identity) |
+| File plaintext | Browser memory during encrypt/decrypt | User device |
+| Ciphertext blob | Shelby nodes | Anyone who fetches bytes (useless without DEK) |
+| File DEK (raw) | Share URL `#fragment`; briefly in RAM when unwrapped | Anyone with the share link |
+| File DEK at rest | Neon/local as `bw1.…` | Wrapped; needs wallet vault signature |
+| Thumbs at rest | Neon/local as `bt1.…` | Wrapped; plain `data:` stripped by API |
+| Vault signature | **Memory only** (never sessionStorage) | Cleared on tab close / disconnect |
+| Library session | Memory HMAC ticket (~2h) after 1 sign | Server verifies MAC |
+| Names, sizes, blob pointers | Neon library meta | Backend + DB operators |
+
+## Controls (this release)
+
+1. **CSP + security headers** (`vercel.json`): default-src self, no framing, nosniff.
+2. **No `dangerouslySetInnerHTML`** on gate (XSS surface reduced).
+3. **Vault memory-only** — reload requires vault re-sign; no sig on disk.
+4. **Thumb seal** `bt1.` + server rejects plain `data:` thumbs.
+5. **Upload owner auth** — Ed25519 sign over ciphertext hash; rate limit /hour.
+6. **Library session** — one sign → HMAC ticket; mutations require ticket.
+7. **Service wallet** still pays Shelby gas (testnet relay) — not user-paid yet; auth stops anonymous burn.
 
 ## Wallet key wrap (v1)
 
-1. User connects wallet (session flag `blobbed_session`).
-2. App requests `aptos:signMessage` with **fixed** nonce `blobbed-vault-v1`.
-3. `SHA-256("blobbedv1" || lower(address) || sigBytes)` → AES-256-GCM vault key.
-4. Each file DEK is wrapped → stored as `bw1.` + base64(iv‖ciphertext).
-5. Legacy plain base64 DEKs migrate on unlock (`migratePlainKeys`).
-6. Vault signature cached in `sessionStorage` for the tab session; cleared on disconnect.
-
-**Caveats**
-
-- Determinism depends on wallet returning a stable signature for the same message+nonce.
-- sessionStorage holds the raw signature (not ideal on shared machines) — tab-scoped convenience.
-- Thumbs (`thumb_data_url`) are plaintext previews in meta by design (small JPEG).
+1. `aptos:signMessage` fixed nonce `blobbed-vault-v1`.
+2. `SHA-256("blobbedv1" || lower(address) || sigBytes)` → AES-GCM vault key.
+3. DEKs → `bw1.` · thumbs → `bt1.`
+4. Legacy plain migrate on unlock.
 
 ## Share links
 
-- Payload (including raw DEK) lives only in URL **fragment**.
-- `POST /api/upload` accepts **ciphertext only** — never a file key.
-- No server-side “Shared with you” inbox (capability model). Lose link → lose access.
+- Raw DEK only in URL **fragment**.
+- `POST /api/upload` ciphertext + auth only.
+- Lose link → lose access (no shared-with-you inbox).
 
-## Upload economics (MVP)
+## Upload economics
 
-- Browser encrypts → `POST /api/upload` with `encryptedBase64`.
-- Service account (`APTOS_PRIVATE_KEY`) signs Shelby registration and pays APT + ShelbyUSD on **shelbynet**.
-- User wallet = library identity + vault unlock, not gas payer (yet).
+- Service account (`APTOS_PRIVATE_KEY`) pays APT + ShelbyUSD on **shelbynet**.
+- Client must prove wallet ownership of `ownerAddress` per upload.
+- `UPLOAD_MAX_PER_HOUR` (default 30).
 
 ## Production checklist
 
-1. Vercel env: `DATABASE_URL` (Neon) → multi-device meta.
-2. Vercel env: `APTOS_PRIVATE_KEY` + `APTOS_NETWORK=shelbynet`.
-3. Fund service wallet: APT (gas) + ShelbyUSD (storage) — see [Shelby Petra setup](https://docs.shelby.xyz/tools/wallets/petra-setup).
-4. Confirm drive status: `Library synced (Neon)` + `Keys wrapped`.
-5. Never commit private keys; rotate service wallet if leaked.
+1. `DATABASE_URL` (Neon)
+2. `APTOS_PRIVATE_KEY` + `APTOS_NETWORK=shelbynet`
+3. Optional `LIBRARY_SESSION_SECRET` (else falls back to APTOS_PRIVATE_KEY)
+4. Fund service wallet ShelbyUSD + APT
+5. Confirm CSP headers on live response
+6. Drive: vault unlock + library session signs; chip **Keys wrapped**
 
-## API surface (keys)
+## Residual risks (still true)
 
-| Endpoint | Keys? |
-|----------|--------|
-| `POST /api/upload` | No — ciphertext + owner address only |
-| `POST /api/library` addFile | May store **wrapped** `encryptedKey` string (owner-supplied meta) |
-| Share open | Client-only `parseShareFragment` — no API |
+| Risk | Mitigation now | Still open |
+|------|----------------|------------|
+| Malicious frontend build | CSP, no inline scripts from third parties | Supply-chain / compromised deploy |
+| XSS | CSP, no unsafe HTML sink on gate | Future rich UI must stay clean |
+| Shared machine | No vault sig in storage | User must lock wallet / close tab |
+| Service wallet hot key | Owner auth + rate limit | Move to user-paid upload later |
+| Share link = bearer token | Documented | User education |
+| GET library by owner address | Public meta index | Optional auth’d GET later |
 
-## Residual risks
+## API
 
-- Malicious/compromised frontend build can exfiltrate keys after unwrap.
-- XSS = game over for session vault.
-- Service wallet is a hot key with funds.
-- Pre-migration legacy rows may still have plain DEKs until user unlocks once.
-- Share links are bearer tokens — treat like passwords.
+| Endpoint | Auth |
+|----------|------|
+| `POST /api/upload` | Wallet sign over sha256(ciphertext) |
+| `POST /api/library` `session` | Wallet sign once |
+| `POST /api/library` other ops | `sessionToken` or full auth |
+| `GET /api/library` | Open read of **meta** (wrapped keys/thumbs only) |

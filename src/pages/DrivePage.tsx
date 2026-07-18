@@ -17,6 +17,9 @@ import {
   countFilesInFolder,
   hydrateLibrary,
   getLibraryBackend,
+  setLibraryAuthWallet,
+  ensureLibrarySession,
+  clearLibrarySession,
 } from '../../scripts/library-store';
 import {
   generateFileShareLink,
@@ -35,6 +38,7 @@ import {
   countKeyEncodings,
   isVaultUnlocked,
   clearVaultSession,
+  openThumb,
 } from '../../scripts/vault';
 import BrandLoader from '../components/BrandLoader';
 import MediaLightbox, {
@@ -77,7 +81,7 @@ export default function DrivePage() {
   const [lightbox, setLightbox] = useState<MediaLightboxState | null>(null);
   const previewUrlRef = useRef<string | null>(null);
   const [vaultOk, setVaultOk] = useState(false);
-  const [keyStats, setKeyStats] = useState({ plain: 0, wrapped: 0 });
+  const [keyStats, setKeyStats] = useState({ plain: 0, wrapped: 0, plainThumbs: 0, wrappedThumbs: 0 });
   const [showTrust, setShowTrust] = useState(false);
 
   const refresh = useCallback(() => setTick((t) => t + 1), []);
@@ -97,20 +101,24 @@ export default function DrivePage() {
       }
       if (cancelled) return;
       setWallet(w);
+      setLibraryAuthWallet(w);
       setStatus({ msg: 'Syncing library…', kind: 'info' });
       await hydrateLibrary(w.address);
       if (cancelled) return;
 
-      // Unlock vault (one wallet signature per tab session)
+      // Unlock vault (memory-only) + library session ticket (1 sign each)
       try {
-        setStatus({ msg: 'Unlock keys — check wallet…', kind: 'info' });
+        setStatus({ msg: 'Unlock vault — check wallet…', kind: 'info' });
         await ensureVaultUnlocked(w);
         if (cancelled) return;
         setVaultOk(true);
+        setStatus({ msg: 'Library session — check wallet…', kind: 'info' });
+        await ensureLibrarySession(w);
+        if (cancelled) return;
         const mig = await migratePlainKeys(w);
-        if (mig.migrated > 0) {
+        if (mig.migrated > 0 || mig.thumbs > 0) {
           setStatus({
-            msg: `Wrapped ${mig.migrated} legacy key${mig.migrated === 1 ? '' : 's'} with wallet`,
+            msg: `Secured ${mig.migrated} key(s), ${mig.thumbs} thumb(s)`,
             kind: 'ok',
           });
         }
@@ -118,9 +126,9 @@ export default function DrivePage() {
         setVaultOk(false);
         setStatus({
           msg:
-            'Vault locked: ' +
+            'Locked: ' +
             (err instanceof Error ? err.message : 'sign rejected') +
-            ' — preview/share/upload need a signature',
+            ' — need vault + session signatures',
           kind: 'err',
         });
       }
@@ -195,28 +203,35 @@ export default function DrivePage() {
 
   useEffect(() => {
     if (!owner || !wallet) return;
-    // Seed thumbs from stored data URLs (Phase C) — instant, no decrypt
-    for (const f of files) {
-      if (f.thumbDataUrl && !thumbs.current.has(f.id)) {
-        thumbs.current.set(f.id, f.thumbDataUrl);
-      }
-    }
-    setThumbTick((t) => t + 1);
     setKeyStats(countKeyEncodings(listAllFiles(owner)));
 
-    // Lazy: only decrypt full preview for images missing thumbs (legacy files)
+    // Decrypt sealed thumbs (bt1.) or use legacy data: — never show ciphertext as img src
     let cancelled = false;
     (async () => {
       for (const f of files) {
         if (cancelled) return;
-        if (!isImageMime(f.mimeType, f.originalName)) continue;
         if (thumbs.current.has(f.id)) continue;
+        if (f.thumbDataUrl) {
+          try {
+            const url = await openThumb(f.thumbDataUrl, wallet);
+            if (cancelled) return;
+            if (url) {
+              thumbs.current.set(f.id, url);
+              setThumbTick((x) => x + 1);
+              continue;
+            }
+          } catch {
+            /* fall through */
+          }
+        }
+        // Lazy full decrypt only for legacy images missing thumbs
+        if (!isImageMime(f.mimeType, f.originalName)) continue;
         try {
           const item = await fileToShareItemAsync(f, wallet);
           const url = await previewObjectUrl(item);
           if (cancelled) return;
           thumbs.current.set(f.id, url);
-          setThumbTick((t) => t + 1);
+          setThumbTick((x) => x + 1);
         } catch {
           /* skip */
         }
@@ -479,6 +494,8 @@ export default function DrivePage() {
       setStatus({ msg: 'Unlock keys — check wallet…', kind: 'info' });
       await ensureVaultUnlocked(wallet, { forcePrompt: true });
       setVaultOk(true);
+      setLibraryAuthWallet(wallet);
+      await ensureLibrarySession(wallet);
       const mig = await migratePlainKeys(wallet);
       setKeyStats(countKeyEncodings(listAllFiles(wallet.address)));
       setStatus({
@@ -501,6 +518,7 @@ export default function DrivePage() {
   async function onDisconnect() {
     setWallet(null);
     clearVaultSession();
+    clearLibrarySession();
     try {
       await disconnectWallet();
     } catch {

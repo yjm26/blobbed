@@ -4,6 +4,12 @@ import {
   makeBlobName,
   uploadBlobToShelby,
 } from './lib/shelby.js';
+import {
+  rateLimit,
+  verifyOwnerAuth,
+  type OwnerAuthPayload,
+} from './lib/owner-auth.js';
+import { createHash } from 'crypto';
 
 export const config = {
   api: {
@@ -15,11 +21,13 @@ export const config = {
 
 /**
  * POST /api/upload
- * Body: { encryptedBase64, fileName, ownerAddress, fileSize? }
+ * Body: { encryptedBase64, fileName, ownerAddress, fileSize?, auth }
  *
  * Encrypt already done client-side. Backend relays ciphertext to Shelby
  * using service wallet (APTOS_PRIVATE_KEY) on shelbynet.
  * Never accepts file DEKs / plaintext — keys stay client-side (wrapped in library meta).
+ *
+ * Requires wallet owner auth so random clients cannot burn service wallet funds.
  */
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') {
@@ -35,14 +43,20 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       });
     }
 
-    const { encryptedBase64, fileName, ownerAddress, fileSize } = req.body || {};
+    const {
+      encryptedBase64,
+      fileName,
+      ownerAddress,
+      fileSize,
+      auth,
+    } = req.body || {};
     if (!encryptedBase64 || !fileName || !ownerAddress) {
       return res.status(400).json({
         error: 'Missing fields: encryptedBase64, fileName, ownerAddress',
       });
     }
 
-    const blobData = Uint8Array.from(Buffer.from(encryptedBase64, 'base64'));
+    const blobData = Uint8Array.from(Buffer.from(String(encryptedBase64), 'base64'));
     const maxBytes = Number(process.env.MAX_UPLOAD_BYTES || 10 * 1024 * 1024);
     if (blobData.length > maxBytes) {
       return res.status(413).json({
@@ -50,7 +64,35 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       });
     }
 
-    const blobName = makeBlobName(String(ownerAddress), String(fileName));
+    const payloadHash = createHash('sha256').update(Buffer.from(blobData)).digest('hex');
+    const verified = verifyOwnerAuth(auth as OwnerAuthPayload, {
+      purpose: 'upload',
+      payloadHash,
+      address: String(ownerAddress),
+    });
+    if (!verified.ok) {
+      return res.status(401).json({
+        error: verified.error,
+        code: verified.code,
+        hint: 'Sign the upload challenge with your wallet (owner auth).',
+      });
+    }
+
+    const perHour = Number(process.env.UPLOAD_MAX_PER_HOUR || 30);
+    const rl = rateLimit(
+      `upload:${verified.address}`,
+      perHour,
+      60 * 60 * 1000
+    );
+    if (!rl.ok) {
+      return res.status(429).json({
+        error: `Upload rate limit (${perHour}/hour). Retry in ${rl.retryAfterSec}s`,
+        code: 'RATE_LIMIT',
+        retryAfterSec: rl.retryAfterSec,
+      });
+    }
+
+    const blobName = makeBlobName(verified.address, String(fileName));
     const result = await uploadBlobToShelby({ blobData, blobName });
 
     return res.status(200).json({
@@ -58,7 +100,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       storageAccount: result.storageAccount,
       blobName: result.blobName,
       blobHash: result.blobName,
-      ownerAddress,
+      ownerAddress: verified.address,
       fileName,
       fileSize: fileSize ?? blobData.length,
       network: process.env.APTOS_NETWORK || process.env.SHELBY_NETWORK || 'shelbynet',
