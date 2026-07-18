@@ -1,31 +1,43 @@
-import type { VercelRequest, VercelResponse } from '@vercel/node';
+import type { VercelRequest, VercelResponse } from 'vercel';
 
-// Mock database for now — replace with real PostgreSQL pool when DATABASE_URL is set
-const mockDb: any[] = [];
+// In-memory mock DB for MVP
+const files: any[] = [];
 
-export default async function handler(req: VercelRequest, res: VercelResponse) {
-  if (req.method === 'GET') {
-    const { owner } = req.query;
-    const files = mockDb.filter(f => f.owner_address === owner);
-    return res.json(files);
-  }
-
+export default function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method === 'POST') {
+    const { ownerAddress, blobHash, originalName, sizeBytes, mimeType, encryptedKey } = req.body;
+    if (!ownerAddress || !blobHash || !originalName) {
+      return res.status(400).json({ error: 'Missing fields' });
+    }
     const file = {
       id: crypto.randomUUID(),
-      ...req.body,
-      created_at: new Date().toISOString(),
+      ownerAddress,
+      blobHash,
+      originalName,
+      sizeBytes,
+      mimeType,
+      encryptedKey,
+      createdAt: new Date().toISOString(),
     };
-    mockDb.push(file);
+    files.push(file);
     return res.status(201).json(file);
+  }
+
+  if (req.method === 'GET') {
+    const { owner } = req.query;
+    if (!owner) return res.status(400).json({ error: 'Missing owner' });
+    const ownerFiles = files.filter(f => f.ownerAddress === owner);
+    return res.status(200).json(ownerFiles);
   }
 
   if (req.method === 'DELETE') {
     const { id } = req.query;
-    const idx = mockDb.findIndex(f => f.id === id);
-    if (idx >= 0) mockDb.splice(idx, 1);
-    return res.status(204).end();
+    if (!id) return res.status(400).json({ error: 'Missing id' });
+    const idx = files.findIndex(f => f.id === id);
+    if (idx === -1) return res.status(404).json({ error: 'File not found' });
+    files.splice(idx, 1);
+    return res.status(200).json({ success: true });
   }
 
-  res.status(405).json({ error: 'Method not allowed' });
+  return res.status(405).json({ error: 'Method not allowed' });
 }
