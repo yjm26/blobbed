@@ -5,15 +5,20 @@
    ============================================ */
 
 :root {
-  --bg: #0A0A0A;
-  --bg-alt: #0d0d0d;
-  --surface: #111111;
-  --surface-raised: #1A1A1A;
-  --border: #222222;
-  --text-primary: #FFFFFF;
-  --text-secondary: #A0A0A0;
-  --text-muted: #666666;
-  --accent-cyan: #00E5FF;
+  --bg: oklch(0.06 0 0);
+  --bg-alt: oklch(0.08 0 0);
+  --surface: oklch(0.10 0 0);
+  --surface-raised: oklch(0.12 0 0);
+  --border: oklch(0.18 0 0);
+  --text-primary: oklch(1 0 0);
+  --text-secondary: oklch(0.65 0 0);
+  --text-muted: oklch(0.50 0 0);
+  --accent-cyan: oklch(0.75 0.15 220);
+  --accent-pink: oklch(0.65 0.22 340);
+  --accent-gold: oklch(0.80 0.18 85);
+
+  --gutter: 3rem;
+  --radius: 0px;
 }
 
 * {
