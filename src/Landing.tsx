@@ -1,10 +1,10 @@
 import React from 'react';
-import { MeshGradient } from '@paper-design/shaders-react';
+import PaperShader from './components/PaperShader';
 
 export default function Landing() {
   return (
     <div className="landing-page">
-      {/* Navbar - Clean Reference */}
+      {/* Navbar - Topology style */}
       <nav className="landing-nav">
         <div className="nav-inner">
           <div className="landing-logo">BLOBBED</div>
@@ -12,19 +12,10 @@ export default function Landing() {
         </div>
       </nav>
 
-      {/* HERO with real paper shader */}
+      {/* HERO - 21st.dev Background Paper Shaders (MeshGradient + DotOrbit) */}
       <section className="landing-hero">
         <div className="hero-shader">
-          <MeshGradient
-            className="w-full h-full absolute inset-0"
-            colors={['#050505', '#0a0a0a', '#111111', '#1a1a1a', '#222222']}
-            speed={0.6}
-            backgroundColor="#050505"
-            distortion={0.6}
-            swirl={0.15}
-            grainMixer={0.5}
-            grainOverlay={0.55}
-          />
+          <PaperShader />
         </div>
 
         <div className="hero-content">

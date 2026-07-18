@@ -334,3 +334,38 @@ body {
 }
 
 /* App pages keep old styles if needed, but minimal for now */
+
+/* Paper Shader layers (21st.dev background-paper-shaders) */
+.hero-shader-inner {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  background: #000;
+}
+
+.paper-mesh {
+  position: absolute !important;
+  inset: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+}
+
+.paper-dots {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0.55;
+  pointer-events: none;
+}
+
+.paper-dots-canvas {
+  width: 100% !important;
+  height: 100% !important;
+}
+
+.hero-content {
+  color: #fff;
+  text-shadow: 0 2px 24px rgba(0, 0, 0, 0.85);
+}
