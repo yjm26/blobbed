@@ -5,7 +5,7 @@ import {
   getConnectedWallet,
   hasAppSession,
 } from '../../scripts/aptos-client';
-import { uploadFiles } from '../../scripts/upload';
+import { uploadFile } from '../../scripts/upload';
 import {
   createFolder,
   listFiles,
@@ -45,6 +45,8 @@ import MediaLightbox, {
   type MediaLightboxState,
 } from '../components/MediaLightbox';
 import TrustPanel from '../components/TrustPanel';
+import ShareSheet, { type ShareSheetState } from '../components/ShareSheet';
+import UploadQueuePanel, { type QueueJob } from '../components/UploadQueuePanel';
 
 function formatSize(bytes: number): string {
   if (bytes < 1024) return bytes + ' B';
@@ -83,6 +85,26 @@ export default function DrivePage() {
   const [vaultOk, setVaultOk] = useState(false);
   const [keyStats, setKeyStats] = useState({ plain: 0, wrapped: 0, plainThumbs: 0, wrappedThumbs: 0 });
   const [showTrust, setShowTrust] = useState(false);
+  const [viewMode, setViewMode] = useState<'list' | 'grid'>(() => {
+    try {
+      return localStorage.getItem('blobbed_view') === 'grid' ? 'grid' : 'list';
+    } catch {
+      return 'list';
+    }
+  });
+  const [sortBy, setSortBy] = useState<'newest' | 'name' | 'size'>(() => {
+    try {
+      const s = localStorage.getItem('blobbed_sort');
+      if (s === 'name' || s === 'size' || s === 'newest') return s;
+    } catch { /* */ }
+    return 'newest';
+  });
+  const [queue, setQueue] = useState<QueueJob[]>([]);
+  const [queueCollapsed, setQueueCollapsed] = useState(false);
+  const queueBusy = useRef(false);
+  const pumpQueueRef = useRef<(() => Promise<void>) | null>(null);
+  const [shareSheet, setShareSheet] = useState<ShareSheetState | null>(null);
+  const [lightboxAlbum, setLightboxAlbum] = useState<string[]>([]);
 
   const refresh = useCallback(() => setTick((t) => t + 1), []);
 
@@ -196,8 +218,31 @@ export default function DrivePage() {
 
   const files: FileMetadata[] = useMemo(() => {
     void tick;
-    return owner ? listFiles(owner, folderId) : [];
-  }, [owner, folderId, tick]);
+    const list = owner ? listFiles(owner, folderId) : [];
+    const sorted = [...list];
+    if (sortBy === 'name') {
+      sorted.sort((a, b) =>
+        a.originalName.localeCompare(b.originalName, undefined, { sensitivity: 'base' })
+      );
+    } else if (sortBy === 'size') {
+      sorted.sort((a, b) => (b.sizeBytes || 0) - (a.sizeBytes || 0));
+    } else {
+      sorted.sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''));
+    }
+    return sorted;
+  }, [owner, folderId, tick, sortBy]);
+
+  const previewableIds = useMemo(
+    () =>
+      files
+        .filter(
+          (f) =>
+            isImageMime(f.mimeType, f.originalName) ||
+            isVideoMime(f.mimeType, f.originalName)
+        )
+        .map((f) => f.id),
+    [files]
+  );
 
   const currentFolder = folderId && owner ? getFolder(owner, folderId) : undefined;
 
@@ -242,34 +287,148 @@ export default function DrivePage() {
     };
   }, [files, owner, wallet, tick]);
 
-  async function handleFiles(list: FileList | File[]) {
+  function enqueueFiles(list: FileList | File[]) {
     if (!wallet) return;
     const arr = Array.from(list);
     if (!arr.length) return;
+    const jobs: QueueJob[] = arr.map((file) => ({
+      id: crypto.randomUUID(),
+      name: file.name,
+      size: file.size,
+      status: 'queued' as const,
+      ratio: 0,
+      file,
+      folderId,
+    }));
+    setQueue((q) => [...q, ...jobs]);
+    setQueueCollapsed(false);
+    setStatus({
+      msg: `Queued ${jobs.length} file${jobs.length === 1 ? '' : 's'}`,
+      kind: 'info',
+    });
+    window.setTimeout(() => void pumpQueueRef.current?.(), 0);
+  }
+
+  const pumpQueue = useCallback(async () => {
+    if (!wallet || queueBusy.current) return;
+    const snapshot = queue;
+    const next = snapshot.find((j) => j.status === 'queued');
+    if (!next) return;
+
+    queueBusy.current = true;
+    const controller = new AbortController();
+    setQueue((q) =>
+      q.map((j) =>
+        j.id === next.id
+          ? { ...j, status: 'running', phase: 'Starting', ratio: 0.02, controller }
+          : j
+      )
+    );
+
     try {
       if (!isVaultUnlocked(wallet.address)) {
-        setStatus({ msg: 'Unlock keys — check wallet…', kind: 'info' });
         await ensureVaultUnlocked(wallet);
         setVaultOk(true);
       }
-      await uploadFiles(arr, wallet, folderId, (name, i, total, phase) => {
-        setStatus({
-          msg: `${phase || 'Uploading'} ${i + 1}/${total}: ${name}`,
-          kind: 'info',
-        });
+      await uploadFile(next.file, wallet, next.folderId, {
+        signal: controller.signal,
+        onProgress: (p) => {
+          setQueue((q) =>
+            q.map((j) =>
+              j.id === next.id && j.status === 'running'
+                ? { ...j, phase: p.phase, ratio: p.ratio }
+                : j
+            )
+          );
+        },
       });
-      setStatus({
-        msg: `Uploaded ${arr.length} file${arr.length === 1 ? '' : 's'}`,
-        kind: 'ok',
-      });
+      setQueue((q) =>
+        q.map((j) =>
+          j.id === next.id
+            ? { ...j, status: 'done', phase: 'Done', ratio: 1, controller: undefined }
+            : j
+        )
+      );
       setKeyStats(countKeyEncodings(listAllFiles(wallet.address)));
       refresh();
+      setStatus({ msg: `Uploaded ${next.name}`, kind: 'ok' });
     } catch (err) {
-      setStatus({
-        msg: 'Upload failed: ' + (err instanceof Error ? err.message : String(err)),
-        kind: 'err',
-      });
+      const aborted =
+        (err instanceof Error && err.name === 'AbortError') ||
+        (err instanceof Error && /cancel/i.test(err.message));
+      setQueue((q) =>
+        q.map((j) =>
+          j.id === next.id
+            ? {
+                ...j,
+                status: aborted ? 'cancelled' : 'error',
+                error: aborted
+                  ? undefined
+                  : err instanceof Error
+                    ? err.message
+                    : String(err),
+                controller: undefined,
+              }
+            : j
+        )
+      );
+      if (!aborted) {
+        setStatus({
+          msg: 'Upload failed: ' + (err instanceof Error ? err.message : String(err)),
+          kind: 'err',
+        });
+      }
+    } finally {
+      queueBusy.current = false;
+      // schedule next tick so state commits first
+      window.setTimeout(() => {
+        void pumpQueueRef.current?.();
+      }, 0);
     }
+  }, [queue, wallet, refresh]);
+
+  pumpQueueRef.current = pumpQueue;
+
+  useEffect(() => {
+    if (queue.some((j) => j.status === 'queued') && !queueBusy.current) {
+      void pumpQueue();
+    }
+  }, [queue, pumpQueue]);
+
+  function handleFiles(list: FileList | File[]) {
+    enqueueFiles(list);
+  }
+
+  function cancelQueueItem(id: string) {
+    setQueue((q) =>
+      q.map((j) => {
+        if (j.id !== id) return j;
+        try {
+          j.controller?.abort();
+        } catch { /* */ }
+        if (j.status === 'queued') return { ...j, status: 'cancelled' };
+        if (j.status === 'running') return { ...j, status: 'cancelled' };
+        return j;
+      })
+    );
+  }
+
+  function retryQueueItem(id: string) {
+    setQueue((q) =>
+      q.map((j) =>
+        j.id === id
+          ? { ...j, status: 'queued', error: undefined, phase: undefined, ratio: 0 }
+          : j
+      )
+    );
+  }
+
+  function dismissQueueItem(id: string) {
+    setQueue((q) => q.filter((j) => j.id !== id));
+  }
+
+  function clearDoneQueue() {
+    setQueue((q) => q.filter((j) => j.status === 'queued' || j.status === 'running'));
   }
 
   function openNewFolder() {
@@ -307,12 +466,16 @@ export default function DrivePage() {
       return;
     }
     try {
+      setStatus({ msg: 'Building share link…', kind: 'info' });
       const link = await generateFolderShareLink(folder, fl, wallet);
-      await navigator.clipboard.writeText(link);
-      setStatus({
-        msg: 'Folder share copied · key in link only (lose link = lose access)',
-        kind: 'ok',
+      setShareSheet({
+        title: folder.name,
+        kind: 'folder',
+        link,
+        fileCount: fl.length,
+        subtitle: 'keys in #fragment',
       });
+      setStatus(null);
     } catch (err: unknown) {
       setStatus({
         msg: err instanceof Error ? err.message : 'Share failed',
@@ -326,12 +489,15 @@ export default function DrivePage() {
     const file = listAllFiles(owner).find((f) => f.id === id);
     if (!file) return;
     try {
+      setStatus({ msg: 'Building share link…', kind: 'info' });
       const link = await generateFileShareLink(file, wallet);
-      await navigator.clipboard.writeText(link);
-      setStatus({
-        msg: 'Share link copied · key in #fragment only',
-        kind: 'ok',
+      setShareSheet({
+        title: file.originalName,
+        kind: 'file',
+        link,
+        subtitle: formatSize(file.sizeBytes),
       });
+      setStatus(null);
     } catch (err) {
       setStatus({
         msg: err instanceof Error ? err.message : 'Share failed',
@@ -414,6 +580,10 @@ export default function DrivePage() {
     const file = listAllFiles(owner).find((f) => f.id === id);
     if (!file) return;
 
+    const album = previewableIds.length ? previewableIds : [id];
+    setLightboxAlbum(album);
+    const albumIndex = Math.max(0, album.indexOf(id));
+
     const kind: 'image' | 'video' = isVideoMime(file.mimeType, file.originalName)
       ? 'video'
       : 'image';
@@ -423,7 +593,13 @@ export default function DrivePage() {
     const cached = thumbs.current.get(file.id);
     const isDataThumb = cached?.startsWith('data:');
     if (cached && kind === 'image' && !isDataThumb) {
-      setLightbox({ url: cached, name: file.originalName, kind: 'image' });
+      setLightbox({
+        url: cached,
+        name: file.originalName,
+        kind: 'image',
+        index: albumIndex,
+        total: album.length,
+      });
       return;
     }
 
@@ -434,6 +610,8 @@ export default function DrivePage() {
       loading: true,
       progress: 0.02,
       progressLabel: 'Unlocking key…',
+      index: albumIndex,
+      total: album.length,
     });
 
     try {
@@ -465,19 +643,29 @@ export default function DrivePage() {
         }
         previewUrlRef.current = url;
       }
-      setLightbox({ url, name: file.originalName, kind, progress: 1 });
+      setLightbox({
+        url,
+        name: file.originalName,
+        kind,
+        progress: 1,
+        index: albumIndex,
+        total: album.length,
+      });
     } catch (err) {
       setLightbox({
         url: '',
         name: file.originalName,
         kind,
         error: err instanceof Error ? err.message : String(err),
+        index: albumIndex,
+        total: album.length,
       });
     }
   }
 
   function closeLightbox() {
     setLightbox(null);
+    setLightboxAlbum([]);
     if (previewUrlRef.current) {
       try {
         URL.revokeObjectURL(previewUrlRef.current);
@@ -487,6 +675,28 @@ export default function DrivePage() {
       previewUrlRef.current = null;
     }
   }
+
+  function lightboxNav(dir: -1 | 1) {
+    if (!lightboxAlbum.length) return;
+    const cur = lightbox?.index ?? 0;
+    const next = (cur + dir + lightboxAlbum.length) % lightboxAlbum.length;
+    void onPreview(lightboxAlbum[next]);
+  }
+
+  function setView(mode: 'list' | 'grid') {
+    setViewMode(mode);
+    try {
+      localStorage.setItem('blobbed_view', mode);
+    } catch { /* */ }
+  }
+
+  function setSort(s: 'newest' | 'name' | 'size') {
+    setSortBy(s);
+    try {
+      localStorage.setItem('blobbed_sort', s);
+    } catch { /* */ }
+  }
+
 
   async function onUnlockVault() {
     if (!wallet) return;
@@ -667,6 +877,36 @@ export default function DrivePage() {
               </p>
             </div>
             <div className="app-stage-actions">
+              <div className="app-toolbar" role="group" aria-label="View options">
+                <button
+                  type="button"
+                  className={`app-tool ${viewMode === 'list' ? 'is-active' : ''}`}
+                  onClick={() => setView('list')}
+                  title="List view"
+                >
+                  List
+                </button>
+                <button
+                  type="button"
+                  className={`app-tool ${viewMode === 'grid' ? 'is-active' : ''}`}
+                  onClick={() => setView('grid')}
+                  title="Grid view"
+                >
+                  Grid
+                </button>
+                <select
+                  className="app-sort"
+                  value={sortBy}
+                  onChange={(e) =>
+                    setSort(e.target.value as 'newest' | 'name' | 'size')
+                  }
+                  aria-label="Sort files"
+                >
+                  <option value="newest">Newest</option>
+                  <option value="name">Name</option>
+                  <option value="size">Size</option>
+                </select>
+              </div>
               {folderId ? (
                 <>
                   <button
@@ -759,14 +999,24 @@ export default function DrivePage() {
           ) : null}
 
           {files.length > 0 ? (
-            <div className="app-file-list">
+            <div
+              className={
+                viewMode === 'grid' ? 'app-file-grid' : 'app-file-list'
+              }
+            >
               {files.map((f) => {
                 const canPreview =
                   isImageMime(f.mimeType, f.originalName) ||
                   isVideoMime(f.mimeType, f.originalName);
                 const thumb = thumbs.current.get(f.id);
+                const video = isVideoMime(f.mimeType, f.originalName);
                 return (
-                  <article key={f.id} className="app-file-row">
+                  <article
+                    key={f.id}
+                    className={
+                      viewMode === 'grid' ? 'app-file-card' : 'app-file-row'
+                    }
+                  >
                     <button
                       type="button"
                       className="app-file-thumb app-file-thumb-btn"
@@ -780,16 +1030,17 @@ export default function DrivePage() {
                         <img src={thumb} alt="" />
                       ) : (
                         <span className="app-file-thumb-ph">
-                          {isVideoMime(f.mimeType, f.originalName)
-                            ? '▶'
-                            : canPreview
-                              ? '…'
-                              : 'FILE'}
+                          {video ? '▶' : canPreview ? '…' : 'FILE'}
                         </span>
                       )}
+                      {video ? (
+                        <span className="app-file-badge">Video</span>
+                      ) : null}
                     </button>
                     <div className="app-file-meta">
-                      <h3 className="app-file-name">{f.originalName}</h3>
+                      <h3 className="app-file-name" title={f.originalName}>
+                        {f.originalName}
+                      </h3>
                       <p className="app-file-sub">
                         {formatSize(f.sizeBytes)} · {(f.createdAt || '').slice(0, 10)}
                       </p>
@@ -801,7 +1052,7 @@ export default function DrivePage() {
                           className="app-btn-text"
                           onClick={() => void onPreview(f.id)}
                         >
-                          {isVideoMime(f.mimeType, f.originalName) ? 'Play' : 'Preview'}
+                          {video ? 'Play' : 'Preview'}
                         </button>
                       ) : null}
                       <button
@@ -827,10 +1078,44 @@ export default function DrivePage() {
 
           {!hasContent ? (
             <div className="app-empty">
-              <p className="app-empty-title">Nothing here yet</p>
-              <p className="app-empty-hint">
-                Create a folder for an album, or upload files.
+              <p className="app-empty-title">
+                {folderId ? 'This folder is empty' : 'Your library is empty'}
               </p>
+              <p className="app-empty-hint">
+                {folderId
+                  ? 'Drop files above or click Upload to fill this album.'
+                  : 'Create a folder for an album, or upload loose files.'}
+              </p>
+              <div className="app-empty-actions">
+                {!folderId ? (
+                  <button
+                    type="button"
+                    className="app-btn-ghost"
+                    onClick={openNewFolder}
+                  >
+                    New folder
+                  </button>
+                ) : null}
+                <button
+                  type="button"
+                  className="app-upload-cta app-empty-cta"
+                  onClick={() => inputRef.current?.click()}
+                >
+                  Upload files
+                </button>
+              </div>
+            </div>
+          ) : folderId && files.length === 0 ? (
+            <div className="app-empty app-empty--soft">
+              <p className="app-empty-title">No files in this folder</p>
+              <p className="app-empty-hint">Drop media here to build the album.</p>
+              <button
+                type="button"
+                className="app-btn-ghost"
+                onClick={() => inputRef.current?.click()}
+              >
+                Upload into folder
+              </button>
             </div>
           ) : null}
 
@@ -989,7 +1274,26 @@ export default function DrivePage() {
         </div>
       ) : null}
 
-      <MediaLightbox state={lightbox} onClose={closeLightbox} />
+      <MediaLightbox
+        state={lightbox}
+        onClose={closeLightbox}
+        onPrev={
+          lightboxAlbum.length > 1 ? () => lightboxNav(-1) : undefined
+        }
+        onNext={
+          lightboxAlbum.length > 1 ? () => lightboxNav(1) : undefined
+        }
+      />
+      <ShareSheet state={shareSheet} onClose={() => setShareSheet(null)} />
+      <UploadQueuePanel
+        items={queue}
+        collapsed={queueCollapsed}
+        onToggleCollapse={() => setQueueCollapsed((c) => !c)}
+        onCancel={cancelQueueItem}
+        onRetry={retryQueueItem}
+        onDismiss={dismissQueueItem}
+        onClearDone={clearDoneQueue}
+      />
     </div>
   );
 }

@@ -27,13 +27,33 @@ export type UploadProgress = {
   ratio: number;
 };
 
+export type UploadOptions = {
+  signal?: AbortSignal;
+  onProgress?: (p: UploadProgress) => void;
+};
+
+function throwIfAborted(signal?: AbortSignal): void {
+  if (signal?.aborted) {
+    const err = new Error('Upload cancelled');
+    err.name = 'AbortError';
+    throw err;
+  }
+}
+
 export async function uploadFile(
   file: File,
   wallet: WalletAccount,
   folderId: string | null = null,
-  onProgress?: (p: UploadProgress) => void
+  onProgressOrOpts?: ((p: UploadProgress) => void) | UploadOptions
 ): Promise<UploadResult> {
-  const report = (phase: string, ratio: number) =>
+  const opts: UploadOptions =
+    typeof onProgressOrOpts === 'function'
+      ? { onProgress: onProgressOrOpts }
+      : onProgressOrOpts || {};
+  const { signal, onProgress } = opts;
+
+  const report = (phase: string, ratio: number) => {
+    throwIfAborted(signal);
     onProgress?.({
       name: file.name,
       index: 0,
@@ -41,13 +61,16 @@ export async function uploadFile(
       phase,
       ratio,
     });
+  };
 
   report('Reading', 0.05);
   const arrayBuffer = await file.arrayBuffer();
+  throwIfAborted(signal);
   const data = new Uint8Array(arrayBuffer);
 
   report('Thumbnail', 0.1);
   const plainThumb = await generateThumbDataUrl(file);
+  throwIfAborted(signal);
 
   const key = generateKey();
   const format = chooseEncFormat(file);
@@ -69,7 +92,9 @@ export async function uploadFile(
   report('Sign upload', 0.58);
   const encryptedBase64 = uint8ToBase64(combined);
   const payloadHash = await sha256Hex(combined);
+  throwIfAborted(signal);
   const auth = await createOwnerAuth(wallet, 'upload', payloadHash);
+  throwIfAborted(signal);
 
   report('Upload to Shelby', 0.62);
   const res = await fetch('/api/upload', {
@@ -84,6 +109,7 @@ export async function uploadFile(
       encFormat: format,
       auth,
     }),
+    signal,
   });
 
   const body = await res.json().catch(() => ({ error: 'Upload failed' }));
@@ -93,7 +119,7 @@ export async function uploadFile(
         ? ' (server needs APTOS_PRIVATE_KEY)'
         : body.code === 'INSUFFICIENT_FUNDS'
           ? ' (fund ShelbyUSD on shelbynet)'
-          : body.code === 'AUTH_REQUIRED' || body.code?.startsWith?.('AUTH_')
+          : body.code === 'AUTH_REQUIRED' || String(body.code || '').startsWith('AUTH_')
             ? ' (wallet auth failed — reconnect)'
             : body.code === 'RATE_LIMIT'
               ? ' (rate limited)'
@@ -106,10 +132,9 @@ export async function uploadFile(
   const blobName = (body.blobName || body.blobHash) as string;
   const keyB64 = keyToBase64(key);
   const vaultKey = await ensureVaultUnlocked(wallet);
+  throwIfAborted(signal);
   const storedKey = await wrapFileKey(key, vaultKey);
-  const sealedThumb = plainThumb
-    ? await sealThumb(plainThumb, wallet)
-    : undefined;
+  const sealedThumb = plainThumb ? await sealThumb(plainThumb, wallet) : undefined;
   const id = crypto.randomUUID();
 
   report('Save library', 0.92);
@@ -151,8 +176,10 @@ export async function uploadFiles(
   for (let i = 0; i < files.length; i++) {
     onEach?.(files[i].name, i, files.length, 'start');
     out.push(
-      await uploadFile(files[i], wallet, folderId, (p) => {
-        onEach?.(p.name, i, files.length, p.phase);
+      await uploadFile(files[i], wallet, folderId, {
+        onProgress: (p) => {
+          onEach?.(p.name, i, files.length, p.phase);
+        },
       })
     );
   }
