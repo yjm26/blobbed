@@ -39,7 +39,7 @@ body {
 
 .landing-page {
   min-height: 100vh;
-  background: linear-gradient(180deg, #1a1a2e 0%, #0A0A0A 50%, #000000 100%);
+  background: var(--bg);
   position: relative;
   overflow: hidden;
 }
@@ -98,6 +98,18 @@ body {
   z-index: 10;
 }
 
+.hero-blob {
+  position: fixed;
+  right: -10%;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 60vw;
+  height: 60vw;
+  z-index: 2;
+  pointer-events: none;
+  opacity: 0.6;
+}
+
 .landing-hero h1 {
   font-size: clamp(3rem, 8vw, 6rem);
   font-weight: 200;
@@ -112,16 +124,13 @@ body {
 }
 
 .landing-hero .line-2 {
-  color: var(--text-muted);
+  color: var(--text-secondary);
   display: block;
-  opacity: 0.6;
+  opacity: 0.5;
 }
 
 .landing-hero .line-3 {
-  background: linear-gradient(135deg, var(--accent-cyan), var(--accent-magenta), var(--accent-gold));
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  color: var(--text-primary);
   display: block;
 }
 

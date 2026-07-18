@@ -8,6 +8,28 @@
 </head>
 <body class="landing-page">
 
+  <!-- MORPHING BLOB VISUAL -->
+  <div class="hero-blob" aria-hidden="true">
+    <svg viewBox="0 0 500 500" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="blobGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" style="stop-color:#111111;stop-opacity:1" />
+          <stop offset="50%" style="stop-color:#1a1a1a;stop-opacity:1" />
+          <stop offset="100%" style="stop-color:#0a0a0a;stop-opacity:1" />
+        </linearGradient>
+      </defs>
+      <path fill="url(#blobGrad)" opacity="0.5">
+        <animate attributeName="d"
+          dur="10s"
+          repeatCount="indefinite"
+          values="M440.5,320.5Q418,391,355.5,442.5Q293,494,226,450.5Q159,407,99,347Q39,287,26.5,205Q14,123,86.5,74.5Q159,26,226,37.5Q293,49,350.5,83.5Q408,118,440.5,189.5Q473,261,440.5,320.5Z;
+                  M432.5,314Q405,378,348.5,418.5Q292,459,225,433.5Q158,408,109,346Q60,284,44.5,207Q29,130,92.5,76.5Q156,23,222,44.5Q288,66,349,91.5Q410,117,435.5,183.5Q461,250,432.5,314Z;
+                  M440.5,320.5Q418,391,355.5,442.5Q293,494,226,450.5Q159,407,99,347Q39,287,26.5,205Q14,123,86.5,74.5Q159,26,226,37.5Q293,49,350.5,83.5Q408,118,440.5,189.5Q473,261,440.5,320.5Z"
+        />
+      </path>
+    </svg>
+  </div>
+
   <!-- NAVBAR -->
   <nav class="landing-nav">
     <div class="landing-logo">Blobbed</div>
