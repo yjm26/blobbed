@@ -1,6 +1,7 @@
 import { downloadFromShelby } from './shelby-client';
 import { decryptFile, base64ToKey } from './crypto';
 import { parseShareFragment } from './share';
+import '../src/style.css';
 
 async function readStream(stream: ReadableStream<Uint8Array>): Promise<Uint8Array> {
   const reader = stream.getReader();
