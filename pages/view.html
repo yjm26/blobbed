@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Shared — Blobbed</title>
+</head>
+<body class="app-page view-page">
+
+  <header class="app-top">
+    <a href="/" class="app-brand">BLOBBED</a>
+    <div class="app-top-right">
+      <span id="view-meta" class="wallet-chip">Shared</span>
+      <a href="/" class="app-link">Home</a>
+    </div>
+  </header>
+
+  <main class="view-main">
+    <header class="view-head">
+      <h1 class="view-title" id="view-title">Shared</h1>
+      <p class="view-sub" id="view-sub">Decrypting in your browser…</p>
+    </header>
+
+    <div id="view-error" class="view-error hidden"></div>
+
+    <div id="view-grid" class="view-grid"></div>
+
+    <div id="lightbox" class="lightbox hidden" role="dialog" aria-modal="true">
+      <button type="button" class="lightbox-close" id="lightbox-close" aria-label="Close">×</button>
+      <div class="lightbox-body" id="lightbox-body"></div>
+      <p class="lightbox-cap" id="lightbox-cap"></p>
+    </div>
+  </main>
+
+  <script type="module" src="/scripts/view.ts"></script>
+</body>
+</html>

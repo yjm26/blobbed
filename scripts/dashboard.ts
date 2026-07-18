@@ -1,12 +1,32 @@
 import { connectWallet, getConnectedWallet, disconnectWallet } from './aptos-client';
-import { uploadFile } from './upload';
-import { generateShareLink } from './share';
+import { uploadFiles } from './upload';
+import {
+  createFolder,
+  listFiles,
+  listFolders,
+  removeFile,
+  getFolder,
+  countFilesInFolder,
+} from './library-store';
+import {
+  generateFileShareLink,
+  generateFolderShareLink,
+  fileToShareItem,
+} from './share';
+import {
+  previewObjectUrl,
+  isImageMime,
+  isVideoMime,
+} from './preview';
 import type { FileMetadata } from './types';
 import '../src/style.css';
 
 const GATE = '/pages/gate.html';
 
 let wallet: { address: string; publicKey: string } | null = null;
+/** null = root library */
+let currentFolderId: string | null = null;
+const thumbUrls = new Map<string, string>();
 
 async function init() {
   wallet = await getConnectedWallet();
@@ -26,13 +46,12 @@ async function init() {
   sessionStorage.setItem('blobbed_wallet', wallet.address);
   const chip = document.getElementById('wallet-address');
   if (chip) {
-    chip.textContent =
-      wallet.address.slice(0, 6) + '…' + wallet.address.slice(-4);
+    chip.textContent = wallet.address.slice(0, 6) + '…' + wallet.address.slice(-4);
     chip.setAttribute('title', wallet.address);
   }
 
-  wireUpload();
-  await loadFiles();
+  wireUi();
+  render();
 }
 
 function escapeHtml(s: string): string {
@@ -63,86 +82,275 @@ function setStatus(msg: string, kind: 'info' | 'err' | 'ok' = 'info') {
   el.textContent = msg;
 }
 
-async function loadFiles() {
+function owner(): string {
+  return wallet!.address;
+}
+
+function render() {
   if (!wallet) return;
-  const res = await fetch(`/api/files?owner=${encodeURIComponent(wallet.address)}`);
-  const files: FileMetadata[] = res.ok ? await res.json() : [];
-  const list = document.getElementById('file-list')!;
-  const empty = document.getElementById('empty-state')!;
-  const count = document.getElementById('file-count');
+  const folders = listFolders(owner());
+  const files = listFiles(owner(), currentFolderId);
+
+  const title = document.getElementById('stage-title');
+  const sub = document.getElementById('stage-sub');
+  const back = document.getElementById('btn-back');
+  const shareFolderBtn = document.getElementById('btn-share-folder');
+  const dropHint = document.getElementById('drop-hint');
+  const navRoot = document.getElementById('nav-root');
+  const folderNav = document.getElementById('folder-nav');
+  const folderGrid = document.getElementById('folder-grid');
+  const fileList = document.getElementById('file-list');
+  const empty = document.getElementById('empty-state');
   const drop = document.getElementById('drop-zone');
 
-  if (count) {
-    count.textContent =
-      files.length === 0
-        ? 'Your encrypted library'
-        : `${files.length} file${files.length === 1 ? '' : 's'}`;
+  navRoot?.classList.toggle('is-active', currentFolderId === null);
+
+  if (folderNav) {
+    folderNav.innerHTML = folders
+      .map(
+        (f) => `
+      <button type="button" class="app-rail-item ${
+        currentFolderId === f.id ? 'is-active' : ''
+      }" data-open-folder="${escapeHtml(f.id)}">
+        ${escapeHtml(f.name)}
+        <span class="app-rail-count">${countFilesInFolder(owner(), f.id)}</span>
+      </button>`
+      )
+      .join('');
   }
 
-  if (files.length === 0) {
-    list.classList.add('hidden');
-    empty.classList.remove('hidden');
-    drop?.classList.remove('app-drop-compact');
+  if (currentFolderId) {
+    const folder = getFolder(owner(), currentFolderId);
+    if (title) title.textContent = folder?.name || 'Folder';
+    if (sub) sub.textContent = `${files.length} file${files.length === 1 ? '' : 's'} in this folder`;
+    back?.classList.remove('hidden');
+    shareFolderBtn?.classList.remove('hidden');
+    if (dropHint) dropHint.textContent = 'Upload into this folder · multi-select ok';
+    if (folderGrid) folderGrid.innerHTML = '';
+  } else {
+    if (title) title.textContent = 'Library';
+    if (sub) {
+      sub.textContent = `${folders.length} folder${folders.length === 1 ? '' : 's'} · ${
+        listFiles(owner(), null).length
+      } loose file${listFiles(owner(), null).length === 1 ? '' : 's'}`;
+    }
+    back?.classList.add('hidden');
+    shareFolderBtn?.classList.add('hidden');
+    if (dropHint) dropHint.textContent = 'or click to browse · multi-select ok';
+
+    if (folderGrid) {
+      folderGrid.innerHTML = folders
+        .map(
+          (f) => `
+        <button type="button" class="drive-folder-card" data-open-folder="${escapeHtml(f.id)}">
+          <span class="drive-folder-icon">▢</span>
+          <span class="drive-folder-name">${escapeHtml(f.name)}</span>
+          <span class="drive-folder-meta">${countFilesInFolder(owner(), f.id)} items</span>
+        </button>`
+        )
+        .join('');
+    }
+  }
+
+  // Files
+  if (fileList) {
+    if (files.length === 0) {
+      fileList.innerHTML = '';
+      fileList.classList.add('hidden');
+    } else {
+      fileList.classList.remove('hidden');
+      fileList.innerHTML = files
+        .map((f) => {
+          const canPreview = isImageMime(f.mimeType, f.originalName) || isVideoMime(f.mimeType, f.originalName);
+          return `
+        <article class="app-file-row" data-file-id="${escapeHtml(f.id)}">
+          <div class="app-file-thumb" data-thumb="${escapeHtml(f.id)}">
+            <span class="app-file-thumb-ph">${canPreview ? '…' : 'FILE'}</span>
+          </div>
+          <div class="app-file-meta">
+            <h3 class="app-file-name">${escapeHtml(f.originalName)}</h3>
+            <p class="app-file-sub">${formatSize(f.sizeBytes)} · ${escapeHtml(
+              (f.createdAt || '').slice(0, 10)
+            )}</p>
+          </div>
+          <div class="app-file-actions">
+            ${
+              canPreview
+                ? `<button type="button" class="app-btn-text preview-btn" data-id="${escapeHtml(
+                    f.id
+                  )}">Preview</button>`
+                : ''
+            }
+            <button type="button" class="app-btn-text share-btn" data-id="${escapeHtml(
+              f.id
+            )}">Share</button>
+            <button type="button" class="app-btn-text app-btn-danger delete-btn" data-id="${escapeHtml(
+              f.id
+            )}">Delete</button>
+          </div>
+        </article>`;
+        })
+        .join('');
+
+      // Lazy thumbs for images
+      for (const f of files) {
+        if (isImageMime(f.mimeType, f.originalName)) {
+          void loadThumb(f);
+        }
+      }
+    }
+  }
+
+  const hasContent =
+    files.length > 0 || (currentFolderId === null && folders.length > 0);
+  empty?.classList.toggle('hidden', hasContent);
+  drop?.classList.toggle('app-drop-compact', files.length > 0);
+}
+
+async function loadThumb(f: FileMetadata) {
+  const slot = document.querySelector(`[data-thumb="${CSS.escape(f.id)}"]`);
+  if (!slot) return;
+  if (thumbUrls.has(f.id)) {
+    slot.innerHTML = `<img src="${thumbUrls.get(f.id)}" alt="" />`;
     return;
   }
+  try {
+    const url = await previewObjectUrl(fileToShareItem(f));
+    thumbUrls.set(f.id, url);
+    slot.innerHTML = `<img src="${url}" alt="" />`;
+  } catch {
+    slot.innerHTML = `<span class="app-file-thumb-ph">IMG</span>`;
+  }
+}
 
-  empty.classList.add('hidden');
-  list.classList.remove('hidden');
-  drop?.classList.add('app-drop-compact');
-
-  list.innerHTML = files
-    .map((f) => {
-      const account = f.storageAccount || '';
-      const name = f.blobName || f.shelbyHash || '';
-      return `
-    <article class="app-file-row">
-      <div class="app-file-meta">
-        <h3 class="app-file-name">${escapeHtml(f.originalName)}</h3>
-        <p class="app-file-sub">${formatSize(f.sizeBytes)} · ${escapeHtml(
-          (f.createdAt || '').slice(0, 10)
-        )}</p>
-      </div>
-      <div class="app-file-actions">
-        <button type="button" class="app-btn-text share-btn"
-          data-account="${escapeHtml(account)}"
-          data-name="${escapeHtml(name)}"
-          data-key="${escapeHtml(f.encryptedKey || '')}">Share</button>
-        <button type="button" class="app-btn-text app-btn-danger delete-btn"
-          data-id="${escapeHtml(f.id)}">Delete</button>
-      </div>
-    </article>`;
-    })
-    .join('');
+function findFile(id: string): FileMetadata | undefined {
+  if (!wallet) return undefined;
+  const root = listFiles(owner(), null);
+  const inFolder = currentFolderId ? listFiles(owner(), currentFolderId) : [];
+  const allFolders = listFolders(owner()).flatMap((fol) => listFiles(owner(), fol.id));
+  return (
+    inFolder.find((f) => f.id === id) ||
+    root.find((f) => f.id === id) ||
+    allFolders.find((f) => f.id === id)
+  );
 }
 
 async function handleFiles(fileList: FileList | File[]) {
   if (!wallet) return;
   const files = Array.from(fileList);
-  for (const file of files) {
-    try {
-      setStatus(`Encrypting & uploading ${file.name}…`, 'info');
-      const result = await uploadFile(file, wallet);
-      const link = generateShareLink(result.storageAccount, result.blobName, result.key);
-      try {
-        await navigator.clipboard.writeText(link);
-        setStatus(`Uploaded. Share link copied.`, 'ok');
-      } catch {
-        setStatus(`Uploaded: ${result.blobName}`, 'ok');
-      }
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : String(err);
-      setStatus('Upload failed: ' + msg, 'err');
-    }
+  if (!files.length) return;
+  try {
+    await uploadFiles(files, wallet, currentFolderId, (name, i, total) => {
+      setStatus(`Uploading ${i + 1}/${total}: ${name}`, 'info');
+    });
+    setStatus(`Uploaded ${files.length} file${files.length === 1 ? '' : 's'}`, 'ok');
+  } catch (err: unknown) {
+    setStatus('Upload failed: ' + (err instanceof Error ? err.message : err), 'err');
   }
-  await loadFiles();
+  render();
 }
 
-function wireUpload() {
+function wireUi() {
   const input = document.getElementById('file-input') as HTMLInputElement | null;
   const openPicker = () => input?.click();
 
   document.getElementById('upload-btn')?.addEventListener('click', openPicker);
   document.getElementById('upload-btn-secondary')?.addEventListener('click', openPicker);
+
+  document.getElementById('btn-new-folder')?.addEventListener('click', () => {
+    if (!wallet) return;
+    const name = prompt('Folder name', 'Album');
+    if (!name) return;
+    const folder = createFolder(owner(), name);
+    currentFolderId = folder.id;
+    setStatus(`Folder “${folder.name}” created`, 'ok');
+    render();
+  });
+
+  document.getElementById('btn-back')?.addEventListener('click', () => {
+    currentFolderId = null;
+    render();
+  });
+
+  document.getElementById('nav-root')?.addEventListener('click', () => {
+    currentFolderId = null;
+    render();
+  });
+
+  document.getElementById('btn-share-folder')?.addEventListener('click', async () => {
+    if (!wallet || !currentFolderId) return;
+    const folder = getFolder(owner(), currentFolderId);
+    if (!folder) return;
+    const files = listFiles(owner(), currentFolderId);
+    if (!files.length) {
+      setStatus('Folder is empty — upload something first', 'err');
+      return;
+    }
+    try {
+      const link = generateFolderShareLink(folder, files);
+      await navigator.clipboard.writeText(link);
+      setStatus('Folder share link copied', 'ok');
+    } catch (err: unknown) {
+      setStatus(err instanceof Error ? err.message : 'Share failed', 'err');
+    }
+  });
+
+  // Event delegation for folder open / file actions
+  document.body.addEventListener('click', async (e) => {
+    const t = e.target as HTMLElement;
+    const openBtn = t.closest('[data-open-folder]') as HTMLElement | null;
+    if (openBtn?.dataset.openFolder) {
+      currentFolderId = openBtn.dataset.openFolder;
+      render();
+      return;
+    }
+
+    if (t.classList.contains('share-btn') && t.dataset.id) {
+      const file = findFile(t.dataset.id);
+      if (!file) return;
+      try {
+        const link = generateFileShareLink(file);
+        await navigator.clipboard.writeText(link);
+        setStatus('Share link copied', 'ok');
+      } catch (err) {
+        setStatus('Share failed', 'err');
+      }
+      return;
+    }
+
+    if (t.classList.contains('delete-btn') && t.dataset.id) {
+      if (!confirm('Remove from your library? (blob stays on Shelby until expiry)')) return;
+      removeFile(owner(), t.dataset.id);
+      render();
+      return;
+    }
+
+    if (t.classList.contains('preview-btn') && t.dataset.id) {
+      const file = findFile(t.dataset.id);
+      if (!file) return;
+      try {
+        setStatus('Loading preview…', 'info');
+        const url = await previewObjectUrl(fileToShareItem(file));
+        thumbUrls.set(file.id, url);
+        // simple window preview
+        const w = window.open('', '_blank');
+        if (w) {
+          if (isImageMime(file.mimeType, file.originalName)) {
+            w.document.write(
+              `<title>${escapeHtml(file.originalName)}</title><body style="margin:0;background:#0a0a0a;display:flex;min-height:100vh;align-items:center;justify-content:center"><img src="${url}" style="max-width:100%;max-height:100vh;object-fit:contain"/></body>`
+            );
+          } else {
+            w.document.write(
+              `<title>${escapeHtml(file.originalName)}</title><body style="margin:0;background:#0a0a0a;display:flex;min-height:100vh;align-items:center;justify-content:center"><video src="${url}" controls autoplay style="max-width:100%;max-height:100vh"></video></body>`
+            );
+          }
+        }
+        setStatus('', 'info');
+      } catch (err) {
+        setStatus('Preview failed: ' + (err instanceof Error ? err.message : err), 'err');
+      }
+    }
+  });
 
   const drop = document.getElementById('drop-zone');
   drop?.addEventListener('click', openPicker);
@@ -152,7 +360,6 @@ function wireUpload() {
       openPicker();
     }
   });
-
   drop?.addEventListener('dragover', (e) => {
     e.preventDefault();
     drop.classList.add('is-drag');
@@ -172,35 +379,14 @@ function wireUpload() {
     }
   });
 
-  document.getElementById('file-list')?.addEventListener('click', (e) => {
-    const target = e.target as HTMLElement;
-    if (target.classList.contains('share-btn')) {
-      const account = target.dataset.account || '';
-      const name = target.dataset.name || '';
-      const key = target.dataset.key || '';
-      if (!account || !name || !key) {
-        setStatus('Missing share data for this file', 'err');
-        return;
-      }
-      const link = generateShareLink(account, name, key);
-      navigator.clipboard.writeText(link).catch(() => {});
-      setStatus('Share link copied', 'ok');
-    }
-    if (target.classList.contains('delete-btn')) {
-      const fileId = target.dataset.id;
-      if (fileId && confirm('Remove this file from your library? (blob stays on Shelby until expiry)')) {
-        fetch(`/api/files?id=${encodeURIComponent(fileId)}`, { method: 'DELETE' }).then(loadFiles);
-      }
-    }
+  document.getElementById('disconnect')?.addEventListener('click', async () => {
+    wallet = null;
+    await disconnectWallet();
+    window.location.href = GATE;
   });
 }
 
-document.getElementById('disconnect')?.addEventListener('click', async () => {
-  wallet = null;
-  await disconnectWallet();
-  window.location.href = GATE;
-});
-
+// re-export helper used above - fileToShareItem is in share.ts
 init().catch((err) => {
   console.error(err);
   window.location.href = GATE;

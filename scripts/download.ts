@@ -1,101 +1,76 @@
-import { downloadFromShelby } from './shelby-client';
-import { decryptFile, base64ToKey } from './crypto';
 import { parseShareFragment } from './share';
+import { downloadShareItem, previewObjectUrl, isImageMime, isVideoMime } from './preview';
+import type { FileSharePayload, ShareFileItem } from './types';
 import '../src/style.css';
 
-async function readStream(stream: ReadableStream<Uint8Array>): Promise<Uint8Array> {
-  const reader = stream.getReader();
-  const chunks: Uint8Array[] = [];
-  let total = 0;
-  while (true) {
-    const { done, value } = await reader.read();
-    if (done) break;
-    chunks.push(value);
-    total += value.length;
-  }
-  const out = new Uint8Array(total);
-  let offset = 0;
-  for (const c of chunks) {
-    out.set(c, offset);
-    offset += c.length;
-  }
-  return out;
+function toItem(p: FileSharePayload): ShareFileItem {
+  return {
+    a: p.a,
+    n: p.n,
+    k: p.k,
+    name: p.name,
+    mime: p.mime,
+    size: p.size,
+  };
 }
 
 async function init() {
   const btn = document.getElementById('download-btn') as HTMLButtonElement | null;
   const info = document.getElementById('file-info');
   const nameEl = document.getElementById('file-name');
+  const previewEl = document.getElementById('preview-slot');
 
   const payload = parseShareFragment(window.location.hash);
-  if (!payload || !payload.key || !payload.blobName) {
+
+  // Redirect folder shares to view.html
+  if (payload?.type === 'folder') {
+    window.location.replace('/pages/view.html' + window.location.hash);
+    return;
+  }
+
+  if (!payload || payload.type !== 'file' || !payload.k || !payload.n) {
     if (btn) btn.textContent = 'Invalid link';
     return;
   }
 
-  if (!payload.storageAccount) {
-    if (btn) btn.textContent = 'Legacy link (missing storage account)';
-    // still allow attempt if env injects default — otherwise click fails clearly
-  }
-
+  const item = toItem(payload);
   info?.classList.remove('hidden');
-  if (nameEl) {
-    // show blob path tail
-    const tail = payload.blobName.split('/').pop() || payload.blobName;
-    nameEl.textContent = tail;
+  if (nameEl) nameEl.textContent = item.name;
+
+  // Inline preview for images
+  if (previewEl && isImageMime(item.mime, item.name)) {
+    previewEl.innerHTML = `<p class="preview-loading">Loading preview…</p>`;
+    try {
+      const url = await previewObjectUrl(item);
+      previewEl.innerHTML = `<img class="download-preview-img" src="${url}" alt="" />`;
+    } catch (e) {
+      previewEl.innerHTML = `<p class="preview-error">Preview failed</p>`;
+      console.error(e);
+    }
+  } else if (previewEl && isVideoMime(item.mime, item.name)) {
+    previewEl.innerHTML = `<p class="preview-loading">Loading video…</p>`;
+    try {
+      const url = await previewObjectUrl(item);
+      previewEl.innerHTML = `<video class="download-preview-video" src="${url}" controls playsinline></video>`;
+    } catch (e) {
+      previewEl.innerHTML = `<p class="preview-error">Preview failed</p>`;
+      console.error(e);
+    }
   }
 
   btn?.addEventListener('click', async () => {
     try {
-      await downloadAndDecrypt(payload.storageAccount, payload.blobName, payload.key);
-    } catch (err: any) {
-      alert('Download failed: ' + (err?.message || err));
+      btn.disabled = true;
+      btn.textContent = 'Downloading…';
+      await downloadShareItem(item);
+      btn.textContent = 'Download file';
+    } catch (err: unknown) {
+      alert('Download failed: ' + (err instanceof Error ? err.message : err));
+      btn.textContent = 'Download file';
+    } finally {
+      btn.disabled = false;
     }
   });
-}
-
-async function downloadAndDecrypt(
-  storageAccount: string,
-  blobName: string,
-  keyBase64: string
-): Promise<void> {
-  if (!storageAccount) {
-    throw new Error('Share link missing storage account. Re-upload and share a new link.');
-  }
-
-  const progress = document.getElementById('progress');
-  const bar = document.getElementById('progress-bar') as HTMLElement | null;
-  const progressText = document.getElementById('progress-text');
-  progress?.classList.remove('hidden');
-  if (progressText) progressText.textContent = 'Downloading from Shelby…';
-  if (bar) bar.style.width = '20%';
-
-  const key = base64ToKey(keyBase64);
-  const stream = await downloadFromShelby(storageAccount, blobName);
-  if (bar) bar.style.width = '55%';
-  if (progressText) progressText.textContent = 'Decrypting…';
-
-  const encryptedData = await readStream(stream);
-  // IV = first 12 bytes (AES-GCM)
-  const iv = encryptedData.slice(0, 12);
-  const ciphertext = encryptedData.slice(12);
-  const decrypted = await decryptFile({ ciphertext, iv }, key);
-
-  if (bar) bar.style.width = '90%';
-
-  const nameGuess = blobName.split('/').pop()?.replace(/^[a-z0-9]+_[a-z0-9]+_/i, '') || 'file';
-  const ab = new ArrayBuffer(decrypted.byteLength);
-  new Uint8Array(ab).set(decrypted);
-  const blob = new Blob([ab]);
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = nameGuess;
-  a.click();
-  URL.revokeObjectURL(url);
-
-  if (bar) bar.style.width = '100%';
-  if (progressText) progressText.textContent = 'Done';
 }
 
 init().catch(console.error);

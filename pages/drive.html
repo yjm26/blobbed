@@ -18,41 +18,46 @@
 
   <main class="app-shell">
     <aside class="app-rail">
-      <button type="button" id="upload-btn" class="app-upload-cta">New upload</button>
+      <button type="button" id="btn-new-folder" class="app-btn-ghost app-btn-block">New folder</button>
+      <button type="button" id="upload-btn" class="app-upload-cta">Upload files</button>
       <nav class="app-rail-nav" aria-label="Library">
         <p class="app-rail-label">Library</p>
-        <button type="button" class="app-rail-item is-active" data-filter="all">All files</button>
-        <button type="button" class="app-rail-item" data-filter="shared" disabled title="Soon">Shared</button>
+        <button type="button" class="app-rail-item is-active" id="nav-root" data-nav="root">All files</button>
+        <div id="folder-nav" class="app-folder-nav"></div>
       </nav>
-      <p class="app-rail-foot">Encrypted client-side<br>Stored on Shelby</p>
+      <p class="app-rail-foot">Folders live in this browser.<br>Blobs on Shelby. Keys never leave your device on share links.</p>
     </aside>
 
     <section class="app-stage">
       <div class="app-stage-head">
         <div>
-          <h1 class="app-stage-title">Files</h1>
-          <p class="app-stage-sub" id="file-count">Your encrypted library</p>
+          <button type="button" id="btn-back" class="app-back hidden">← Library</button>
+          <h1 class="app-stage-title" id="stage-title">Files</h1>
+          <p class="app-stage-sub" id="stage-sub">Your encrypted library</p>
         </div>
-        <button type="button" id="upload-btn-secondary" class="app-btn-ghost">Upload</button>
+        <div class="app-stage-actions">
+          <button type="button" id="btn-share-folder" class="app-btn-ghost hidden">Share folder</button>
+          <button type="button" id="upload-btn-secondary" class="app-btn-ghost">Upload</button>
+        </div>
       </div>
 
       <div id="drop-zone" class="app-drop" tabindex="0" role="button" aria-label="Drop files to upload">
         <span class="app-drop-title">Drop files here</span>
-        <span class="app-drop-hint">or click to browse · AES-256 before upload</span>
+        <span class="app-drop-hint" id="drop-hint">or click to browse · multi-select ok</span>
       </div>
 
-      <div id="file-list" class="app-file-list hidden"></div>
-
-      <div id="empty-state" class="app-empty">
-        <p class="app-empty-title">No files yet</p>
-        <p class="app-empty-hint">Upload something. Only you hold the key.</p>
+      <div id="folder-grid" class="drive-folder-grid"></div>
+      <div id="file-list" class="app-file-list"></div>
+      <div id="empty-state" class="app-empty hidden">
+        <p class="app-empty-title">Nothing here yet</p>
+        <p class="app-empty-hint">Create a folder for an album, or upload files.</p>
       </div>
 
       <div id="upload-status" class="app-status hidden" role="status"></div>
     </section>
   </main>
 
-  <input type="file" id="file-input" class="hidden" multiple>
+  <input type="file" id="file-input" class="hidden" multiple accept="*/*">
 
   <script type="module" src="/scripts/dashboard.ts"></script>
 </body>

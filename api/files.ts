@@ -15,6 +15,7 @@ type FileRow = {
   sizeBytes: number;
   mimeType: string;
   encryptedKey: string;
+  folderId?: string | null;
   createdAt: string;
 };
 
@@ -31,6 +32,7 @@ export default function handler(req: VercelRequest, res: VercelResponse) {
       sizeBytes,
       mimeType,
       encryptedKey,
+      folderId,
     } = req.body || {};
 
     const name = blobName || blobHash;
@@ -48,6 +50,7 @@ export default function handler(req: VercelRequest, res: VercelResponse) {
       sizeBytes: sizeBytes ?? 0,
       mimeType: mimeType || 'application/octet-stream',
       encryptedKey: encryptedKey || '',
+      folderId: folderId || null,
       createdAt: new Date().toISOString(),
     };
     files.push(file);
@@ -55,11 +58,19 @@ export default function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   if (req.method === 'GET') {
-    const { owner } = req.query;
+    const { owner, folderId } = req.query;
     if (!owner || typeof owner !== 'string') {
       return res.status(400).json({ error: 'Missing owner' });
     }
-    return res.status(200).json(files.filter((f) => f.ownerAddress === owner));
+    let list = files.filter((f) => f.ownerAddress === owner);
+    if (typeof folderId === 'string') {
+      if (folderId === '' || folderId === 'root') {
+        list = list.filter((f) => !f.folderId);
+      } else {
+        list = list.filter((f) => f.folderId === folderId);
+      }
+    }
+    return res.status(200).json(list);
   }
 
   if (req.method === 'DELETE') {
