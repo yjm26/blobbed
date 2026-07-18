@@ -1,4 +1,5 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 import PaperShader from './components/PaperShader';
 
 export default function Landing() {
@@ -7,7 +8,7 @@ export default function Landing() {
       <nav className="landing-nav">
         <div className="nav-inner">
           <div className="landing-logo">BLOBBED</div>
-          <a href="/pages/gate.html" className="nav-cta">GO TO APP</a>
+          <Link to="/gate" className="nav-cta">GO TO APP</Link>
         </div>
       </nav>
 
@@ -26,7 +27,7 @@ export default function Landing() {
             Decentralized, encrypted file storage on Shelby Protocol.
           </p>
           <div className="hero-cta">
-            <a href="/pages/gate.html" className="cta-primary">Enter the App</a>
+            <Link to="/gate" className="cta-primary">Enter the App</Link>
             <a href="#principles" className="cta-secondary">Read more</a>
           </div>
         </div>
@@ -179,7 +180,7 @@ export default function Landing() {
           <br />
           Truly yours.
         </h2>
-        <a href="/pages/gate.html" className="cta-primary">Enter the App</a>
+        <Link to="/gate" className="cta-primary">Enter the App</Link>
       </section>
 
       <footer className="landing-footer">

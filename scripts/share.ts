@@ -138,16 +138,16 @@ export function generateFolderShareLink(
       'Folder too large to share via link. Remove some files or split the folder.'
     );
   }
-  return `${window.location.origin}/pages/view.html#${frag}`;
+  return `${window.location.origin}/view#${frag}`;
 }
 
 export function generateFileShareLink(file: FileMetadata): string {
   const payload = buildFileSharePayload(file);
   const frag = encodeSharePayload(payload);
-  return `${window.location.origin}/pages/view.html#${frag}`;
+  return `${window.location.origin}/view#${frag}`;
 }
 
-/** Keep old download.html links working */
+/** Keep old download links working → SPA /view */
 export function generateShareLink(
   storageAccount: string,
   blobName: string,
@@ -163,5 +163,5 @@ export function generateShareLink(
     mime: 'application/octet-stream',
     size: 0,
   };
-  return `${window.location.origin}/pages/view.html#${encodeSharePayload(payload)}`;
+  return `${window.location.origin}/view#${encodeSharePayload(payload)}`;
 }

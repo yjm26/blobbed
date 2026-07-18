@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta http-equiv="refresh" content="0;url=/drive" />
+  <script>
+    (function () {
+      var map = { 'gate.html': '/gate', 'drive.html': '/drive', 'view.html': '/view', 'download.html': '/download' };
+      var name = location.pathname.split('/').pop() || '';
+      var target = map[name] || '/';
+      location.replace(target + location.search + location.hash);
+    })();
+  </script>
+  <title>Redirecting…</title>
+</head>
+<body style="background:#0a0a0a;color:#fff;font-family:system-ui;display:grid;place-items:center;min-height:100vh">
+  <p>Redirecting to SPA…</p>
+</body>
+</html>
