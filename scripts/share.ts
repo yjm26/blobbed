@@ -34,13 +34,13 @@ function base64UrlToUtf8(s: string): string {
 }
 
 /**
- * Sync helper — only safe when encryptedKey is already a raw DEK (legacy plain
+ * Sync helper - only safe when encryptedKey is already a raw DEK (legacy plain
  * or pre-resolved). Prefer fileToShareItemAsync for owner library files.
  */
 export function fileToShareItem(f: FileMetadata): ShareFileItem {
   if (isWrappedKey(f.encryptedKey || '')) {
     throw new Error(
-      'File key is wallet-wrapped — use fileToShareItemAsync after vault unlock'
+      'File key is wallet-wrapped - use fileToShareItemAsync after vault unlock'
     );
   }
   return {

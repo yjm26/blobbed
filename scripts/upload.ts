@@ -120,7 +120,7 @@ export async function uploadFile(
         : body.code === 'INSUFFICIENT_FUNDS'
           ? ' (fund ShelbyUSD on shelbynet)'
           : body.code === 'AUTH_REQUIRED' || String(body.code || '').startsWith('AUTH_')
-            ? ' (wallet auth failed — reconnect)'
+            ? ' (wallet auth failed - reconnect)'
             : body.code === 'RATE_LIMIT'
               ? ' (rate limited)'
               : '';

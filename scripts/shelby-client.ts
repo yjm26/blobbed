@@ -1,7 +1,7 @@
 import { ShelbyClient } from '@shelby-protocol/sdk/browser';
 import { Network } from '@aptos-labs/ts-sdk';
 
-/** Browser Shelby client — download only (upload goes through backend relay). */
+/** Browser Shelby client - download only (upload goes through backend relay). */
 function resolveNetwork(): Network {
   const n = (import.meta as any).env?.VITE_APTOS_NETWORK?.toLowerCase?.() || 'shelbynet';
   if (n === 'testnet') return Network.TESTNET;
@@ -23,8 +23,8 @@ export function getBrowserShelbyClient(): ShelbyClient {
 
 /**
  * Download ciphertext stream from Shelby.
- * @param storageAccount — Aptos address that registered the blob (service wallet)
- * @param blobName — path used at upload time
+ * @param storageAccount - Aptos address that registered the blob (service wallet)
+ * @param blobName - path used at upload time
  */
 export async function downloadFromShelby(
   storageAccount: string,
@@ -40,7 +40,7 @@ export async function downloadFromShelby(
 
 /**
  * @deprecated Upload must go through /api/upload (backend relay).
- * Kept so old imports don't crash — throws with clear message.
+ * Kept so old imports don't crash - throws with clear message.
  */
 export async function uploadToShelby(
   _data: Uint8Array,

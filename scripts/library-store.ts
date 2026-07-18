@@ -15,7 +15,7 @@ const cache = new Map<string, LibrarySnapshot>();
 
 let lastBackend: 'neon' | 'memory' | 'local' | 'unknown' = 'unknown';
 
-/** HMAC library session (memory only — not sessionStorage). */
+/** HMAC library session (memory only - not sessionStorage). */
 let librarySession: { address: string; token: string; exp: number } | null = null;
 let authWallet: WalletAccount | null = null;
 
@@ -125,7 +125,7 @@ export async function ensureLibrarySession(
   if (!res.ok || !data.token) {
     throw new Error(
       (data as { error?: string }).error ||
-        'Library session failed — sign rejected or server auth error'
+        'Library session failed - sign rejected or server auth error'
     );
   }
   librarySession = {

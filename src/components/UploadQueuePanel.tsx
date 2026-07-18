@@ -156,7 +156,7 @@ export default function UploadQueuePanel({
   );
 }
 
-/** Tiny hook helper types for parent — files retained for retry */
+/** Tiny hook helper types for parent. files retained for retry */
 export type QueueJob = QueueItem & {
   file: File;
   folderId: string | null;

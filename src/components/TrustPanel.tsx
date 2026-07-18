@@ -18,7 +18,7 @@ type Props = {
 };
 
 /**
- * Honest trust copy — what the server sees vs what stays client-side.
+ * Honest trust copy - what the server sees vs what stays client-side.
  * Prefer understatement over MEGA marketing claims.
  */
 export default function TrustPanel({
@@ -54,7 +54,7 @@ export default function TrustPanel({
             shelbynet for now.
           </li>
           <li>
-            <strong>Vault key</strong> stays in RAM only — refresh = sign again.
+            <strong>Vault key</strong> stays in RAM only - refresh = sign again.
             Thumbs sealed as <code>bt1.</code>; plain previews stripped server-side.
           </li>
         </ul>
@@ -88,7 +88,7 @@ export default function TrustPanel({
             on Neon so devices can sync. Raw DEKs are wallet-wrapped client-side.
           </li>
           <li>
-            Anyone with a share link can decrypt that file — by design. No
+            Anyone with a share link can decrypt that file - by design. No
             password reset, no recovery email.
           </li>
           <li>

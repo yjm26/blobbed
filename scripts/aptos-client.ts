@@ -1,6 +1,6 @@
 /**
  * Aptos wallet via Wallet Standard (AIP-62).
- * Do NOT use window.aptos / window.petra — deprecated.
+ * Do NOT use window.aptos / window.petra - deprecated.
  *
  * Session model:
  * - Wallet extension may stay "authorized" after disconnect.
@@ -19,7 +19,7 @@ import type { WalletAccount } from './types';
 
 let _aptos: Aptos | null = null;
 
-/** Lazy Aptos client — avoid crashing app boot if config/polyfill order is off */
+/** Lazy Aptos client - avoid crashing app boot if config/polyfill order is off */
 export function getAptos(): Aptos {
   if (!_aptos) {
     const config = new AptosConfig({ network: Network.TESTNET });
@@ -131,7 +131,7 @@ async function waitForWallets(ms = 400): Promise<AptosWallet[]> {
 }
 
 /**
- * Interactive connect — always prompts (or wallet UI) when possible.
+ * Interactive connect - always prompts (or wallet UI) when possible.
  * Sets app session on success.
  */
 export async function connectWallet(): Promise<WalletAccount> {
@@ -148,7 +148,7 @@ export async function connectWallet(): Promise<WalletAccount> {
     throw new Error(`Wallet ${wallet.name} does not support aptos:connect`);
   }
 
-  // Explicit interactive connect — do NOT pass silent=true
+  // Explicit interactive connect - do NOT pass silent=true
   const response = await connectFn();
   if (!isApproved(response) || !response.args) {
     throw new Error('Connection rejected');
@@ -179,7 +179,7 @@ export async function connectWallet(): Promise<WalletAccount> {
 
 /**
  * Read wallet account only if our app session is active.
- * Does not create a new login — silent re-read for same tab after connect.
+ * Does not create a new login - silent re-read for same tab after connect.
  */
 export async function getConnectedWallet(): Promise<WalletAccount | null> {
   if (!hasAppSession()) {
@@ -252,7 +252,7 @@ export async function getConnectedWallet(): Promise<WalletAccount | null> {
     }
   }
 
-  // Session flag stale — wallet no longer available
+  // Session flag stale - wallet no longer available
   return null;
 }
 
@@ -263,7 +263,7 @@ export async function disconnectWallet(): Promise<void> {
     const disconnect = wallet?.features['aptos:disconnect']?.disconnect;
     if (disconnect) await disconnect();
   } catch {
-    /* ignore wallet errors — still clear our session */
+    /* ignore wallet errors - still clear our session */
   }
   activeWallet = null;
   // Clear vault sig cache (dynamic import avoids circular init issues)

@@ -32,7 +32,7 @@ export const VAULT_MESSAGE =
 /** Fixed nonce → deterministic signature for key derivation (same wallet). */
 export const VAULT_NONCE = 'blobbed-vault-v1';
 
-/** Legacy prefix — purged on clear so old sessions do not leave sigs around */
+/** Legacy prefix - purged on clear so old sessions do not leave sigs around */
 const LEGACY_SESSION_PREFIX = 'blobbed_vault_sig_v1_';
 
 type VaultState = {
@@ -87,7 +87,7 @@ async function unlockFromSignature(
 }
 
 /**
- * Unlock vault for owner. Memory-only — prompts sign when not unlocked
+ * Unlock vault for owner. Memory-only - prompts sign when not unlocked
  * (including after full page reload).
  */
 export async function ensureVaultUnlocked(
@@ -126,7 +126,7 @@ export async function resolveRawKeyBase64(
     vault = await ensureVaultUnlocked(wallet);
   }
   if (!vault) {
-    throw new Error('Vault locked — connect & sign to unlock keys');
+    throw new Error('Vault locked - connect & sign to unlock keys');
   }
 
   const raw = await unwrapFileKey(stored, vault);

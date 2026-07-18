@@ -45,7 +45,7 @@ export default function ShareSheet({ state, onClose }: Props) {
       setErr('');
       window.setTimeout(() => setCopied(false), 2000);
     } catch {
-      setErr('Clipboard blocked — select the link and copy manually');
+      setErr('Clipboard blocked. Select the link and copy manually');
       inputRef.current?.select();
     }
   }
@@ -100,7 +100,7 @@ export default function ShareSheet({ state, onClose }: Props) {
 
         <ul className="share-sheet-notes">
           <li>
-            Decryption key sits in the URL <code>#fragment</code> — not sent to our
+            Decryption key sits in the URL <code>#fragment</code>. Not sent to our
             servers.
           </li>
           <li>Anyone with the link can open and decrypt. No wallet needed to view.</li>

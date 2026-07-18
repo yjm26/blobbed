@@ -12,7 +12,7 @@ type Props = {
 };
 
 /**
- * Full-viewport brand loader — route chunks, drive hydrate, gate handoff.
+ * Full-viewport brand loader. route chunks, drive hydrate, gate handoff.
  * Always covers the screen (no parent-column “strip”).
  */
 export default function BrandLoader({

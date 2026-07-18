@@ -44,9 +44,12 @@ import BrandLoader from '../components/BrandLoader';
 import MediaLightbox, {
   type MediaLightboxState,
 } from '../components/MediaLightbox';
-import TrustPanel from '../components/TrustPanel';
 import ShareSheet, { type ShareSheetState } from '../components/ShareSheet';
 import UploadQueuePanel, { type QueueJob } from '../components/UploadQueuePanel';
+import FilterMenu, {
+  type FileKindFilter,
+  type SortKey,
+} from '../components/FilterMenu';
 
 function formatSize(bytes: number): string {
   if (bytes < 1024) return bytes + ' B';
@@ -84,7 +87,6 @@ export default function DrivePage() {
   const previewUrlRef = useRef<string | null>(null);
   const [vaultOk, setVaultOk] = useState(false);
   const [keyStats, setKeyStats] = useState({ plain: 0, wrapped: 0, plainThumbs: 0, wrappedThumbs: 0 });
-  const [showTrust, setShowTrust] = useState(false);
   const [viewMode, setViewMode] = useState<'list' | 'grid'>(() => {
     try {
       return localStorage.getItem('blobbed_view') === 'grid' ? 'grid' : 'list';
@@ -92,25 +94,22 @@ export default function DrivePage() {
       return 'list';
     }
   });
-  const [sortBy, setSortBy] = useState<'newest' | 'name' | 'size'>(() => {
+  const [sortBy, setSortBy] = useState<SortKey>(() => {
     try {
       const s = localStorage.getItem('blobbed_sort');
       if (s === 'name' || s === 'size' || s === 'newest') return s;
     } catch { /* */ }
     return 'newest';
   });
+  const [filterOpen, setFilterOpen] = useState(false);
+  const [filterQuery, setFilterQuery] = useState('');
+  const [filterKind, setFilterKind] = useState<FileKindFilter>('all');
   const [queue, setQueue] = useState<QueueJob[]>([]);
   const [queueCollapsed, setQueueCollapsed] = useState(false);
   const queueBusy = useRef(false);
   const pumpQueueRef = useRef<(() => Promise<void>) | null>(null);
   const [shareSheet, setShareSheet] = useState<ShareSheetState | null>(null);
   const [lightboxAlbum, setLightboxAlbum] = useState<string[]>([]);
-  const [prodStatus, setProdStatus] = useState<{
-    ready?: boolean;
-    db?: { backend?: string };
-    shelby?: { configured?: boolean; network?: string; serviceAddress?: string | null };
-    checks?: Record<string, boolean>;
-  } | null>(null);
 
   const refresh = useCallback(() => setTick((t) => t + 1), []);
 
@@ -136,11 +135,11 @@ export default function DrivePage() {
 
       // Unlock vault (memory-only) + library session ticket (1 sign each)
       try {
-        setStatus({ msg: 'Unlock vault — check wallet…', kind: 'info' });
+        setStatus({ msg: 'Unlock vault. Check wallet…', kind: 'info' });
         await ensureVaultUnlocked(w);
         if (cancelled) return;
         setVaultOk(true);
-        setStatus({ msg: 'Library session — check wallet…', kind: 'info' });
+        setStatus({ msg: 'Library session. Check wallet…', kind: 'info' });
         await ensureLibrarySession(w);
         if (cancelled) return;
         const mig = await migratePlainKeys(w);
@@ -156,7 +155,7 @@ export default function DrivePage() {
           msg:
             'Locked: ' +
             (err instanceof Error ? err.message : 'sign rejected') +
-            ' — need vault + session signatures',
+            '. Need vault + session signatures',
           kind: 'err',
         });
       }
@@ -177,23 +176,17 @@ export default function DrivePage() {
         setTimeout(() => setStatus((s) => (s?.kind === 'ok' ? null : s)), 2800);
       } else if (backend === 'memory') {
         setStatus({
-          msg: 'Library on server memory — set DATABASE_URL for durable DB',
+          msg: 'Library on server memory. Set DATABASE_URL for durable DB',
           kind: 'info',
         });
       } else {
         setStatus({
-          msg: 'Library local-only — set DATABASE_URL on Vercel',
+          msg: 'Library local-only. Set DATABASE_URL on Vercel',
           kind: 'info',
         });
       }
       setReady(true);
       refresh();
-      try {
-        const st = await fetch('/api/status', { cache: 'no-store' }).then((r) => r.json());
-        if (!cancelled && st && st.ok) setProdStatus(st);
-      } catch {
-        /* ignore */
-      }
     })().catch(() => nav('/gate', { replace: true }));
     return () => {
       cancelled = true;
@@ -230,7 +223,22 @@ export default function DrivePage() {
 
   const files: FileMetadata[] = useMemo(() => {
     void tick;
-    const list = owner ? listFiles(owner, folderId) : [];
+    let list = owner ? listFiles(owner, folderId) : [];
+    const q = filterQuery.trim().toLowerCase();
+    if (q) {
+      list = list.filter((f) => f.originalName.toLowerCase().includes(q));
+    }
+    if (filterKind === 'image') {
+      list = list.filter((f) => isImageMime(f.mimeType, f.originalName));
+    } else if (filterKind === 'video') {
+      list = list.filter((f) => isVideoMime(f.mimeType, f.originalName));
+    } else if (filterKind === 'other') {
+      list = list.filter(
+        (f) =>
+          !isImageMime(f.mimeType, f.originalName) &&
+          !isVideoMime(f.mimeType, f.originalName)
+      );
+    }
     const sorted = [...list];
     if (sortBy === 'name') {
       sorted.sort((a, b) =>
@@ -242,7 +250,7 @@ export default function DrivePage() {
       sorted.sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''));
     }
     return sorted;
-  }, [owner, folderId, tick, sortBy]);
+  }, [owner, folderId, tick, sortBy, filterQuery, filterKind]);
 
   const previewableIds = useMemo(
     () =>
@@ -262,7 +270,7 @@ export default function DrivePage() {
     if (!owner || !wallet) return;
     setKeyStats(countKeyEncodings(listAllFiles(owner)));
 
-    // Decrypt sealed thumbs (bt1.) or use legacy data: — never show ciphertext as img src
+    // Decrypt sealed thumbs (bt1.) or legacy data: URLs. Never show ciphertext as img src
     let cancelled = false;
     (async () => {
       for (const f of files) {
@@ -474,7 +482,7 @@ export default function DrivePage() {
     if (!folder) return;
     const fl = listFiles(owner, folderId);
     if (!fl.length) {
-      setStatus({ msg: 'Folder is empty — upload something first', kind: 'err' });
+      setStatus({ msg: 'Folder is empty. Upload something first', kind: 'err' });
       return;
     }
     try {
@@ -702,7 +710,7 @@ export default function DrivePage() {
     } catch { /* */ }
   }
 
-  function setSort(s: 'newest' | 'name' | 'size') {
+  function setSort(s: SortKey) {
     setSortBy(s);
     try {
       localStorage.setItem('blobbed_sort', s);
@@ -713,7 +721,7 @@ export default function DrivePage() {
   async function onUnlockVault() {
     if (!wallet) return;
     try {
-      setStatus({ msg: 'Unlock keys — check wallet…', kind: 'info' });
+      setStatus({ msg: 'Unlock keys. Check wallet…', kind: 'info' });
       await ensureVaultUnlocked(wallet, { forcePrompt: true });
       setVaultOk(true);
       setLibraryAuthWallet(wallet);
@@ -783,13 +791,6 @@ export default function DrivePage() {
           >
             {vaultOk ? 'Keys wrapped' : 'Unlock keys'}
           </button>
-          <button
-            type="button"
-            className="app-link app-link-muted"
-            onClick={() => setShowTrust((v) => !v)}
-          >
-            {showTrust ? 'Hide trust' : 'Trust'}
-          </button>
           <span className="wallet-chip" title={wallet.address}>
             {chip}
           </span>
@@ -806,26 +807,6 @@ export default function DrivePage() {
         </div>
       </header>
 
-      <TrustPanel
-        context="drive"
-        compact
-        vaultOk={vaultOk}
-        backend={backend}
-        keyStats={keyStats}
-        onUnlock={() => void onUnlockVault()}
-        className="app-reveal app-reveal-1"
-      />
-
-      {showTrust ? (
-        <TrustPanel
-          context="drive"
-          vaultOk={vaultOk}
-          backend={backend}
-          keyStats={keyStats}
-          onUnlock={() => void onUnlockVault()}
-          className="app-reveal trust-panel--expanded"
-        />
-      ) : null}
 
       <main className="app-shell">
         <aside className="app-rail app-reveal app-reveal-2">
@@ -862,39 +843,11 @@ export default function DrivePage() {
               ))}
             </div>
           </nav>
-          <div className="app-rail-foot">
-            <p>
-              Ciphertext → Shelby · meta →{' '}
-              {backend === 'neon' ? 'Neon' : backend}
-            </p>
-            {prodStatus ? (
-              <ul className="prod-checks" aria-label="Production checks">
-                <li data-ok={prodStatus.checks?.neon ? '1' : '0'}>
-                  Neon {prodStatus.checks?.neon ? 'ok' : 'missing'}
-                </li>
-                <li data-ok={prodStatus.checks?.shelbyKey ? '1' : '0'}>
-                  Shelby key {prodStatus.checks?.shelbyKey ? 'ok' : 'missing'}
-                </li>
-                <li data-ok={prodStatus.checks?.shelbynet ? '1' : '0'}>
-                  Network {prodStatus.shelby?.network || '—'}
-                </li>
-                <li data-ok={prodStatus.ready ? '1' : '0'}>
-                  Ready {prodStatus.ready ? 'yes' : 'no'}
-                </li>
-              </ul>
-            ) : (
-              <p className="app-rail-foot-muted">Checking /api/status…</p>
-            )}
-            {prodStatus?.shelby?.serviceAddress ? (
-              <p
-                className="app-rail-foot-muted app-rail-mono"
-                title="Fund ShelbyUSD + APT on shelbynet"
-              >
-                svc {prodStatus.shelby.serviceAddress.slice(0, 6)}…
-                {prodStatus.shelby.serviceAddress.slice(-4)}
-              </p>
-            ) : null}
-          </div>
+          <p className="app-rail-foot">
+            Encrypted on device. Blobs on Shelby.
+            {backend === 'neon' ? ' Library on Neon.' : backend === 'memory' ? ' Library: server memory.' : ' Library: this device.'}
+            {vaultOk ? ' Keys wrapped.' : ''}
+          </p>
         </aside>
 
         <section className="app-stage app-reveal app-reveal-3">
@@ -934,18 +887,17 @@ export default function DrivePage() {
                 >
                   Grid
                 </button>
-                <select
-                  className="app-sort"
-                  value={sortBy}
-                  onChange={(e) =>
-                    setSort(e.target.value as 'newest' | 'name' | 'size')
-                  }
-                  aria-label="Sort files"
-                >
-                  <option value="newest">Newest</option>
-                  <option value="name">Name</option>
-                  <option value="size">Size</option>
-                </select>
+                <FilterMenu
+                  open={filterOpen}
+                  onOpenChange={setFilterOpen}
+                  query={filterQuery}
+                  onQueryChange={setFilterQuery}
+                  kind={filterKind}
+                  onKindChange={setFilterKind}
+                  sort={sortBy}
+                  onSortChange={setSort}
+                  resultCount={files.length}
+                />
               </div>
               {folderId ? (
                 <>
@@ -1116,6 +1068,23 @@ export default function DrivePage() {
             </div>
           ) : null}
 
+          {hasContent && files.length === 0 && (filterQuery || filterKind !== 'all') ? (
+            <div className="app-empty app-empty--soft">
+              <p className="app-empty-title">No matches</p>
+              <p className="app-empty-hint">Try another search or clear filters.</p>
+              <button
+                type="button"
+                className="app-btn-ghost"
+                onClick={() => {
+                  setFilterQuery('');
+                  setFilterKind('all');
+                }}
+              >
+                Clear filters
+              </button>
+            </div>
+          ) : null}
+
           {!hasContent ? (
             <div className="app-empty">
               <p className="app-empty-title">
@@ -1181,7 +1150,7 @@ export default function DrivePage() {
         }}
       />
 
-      {/* In-app modal — no browser prompt/confirm */}
+      {/* In-app modal, no browser prompt/confirm */}
       {dialog ? (
         <div
           className="app-modal-backdrop"

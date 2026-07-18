@@ -24,7 +24,7 @@ type Props = {
 };
 
 /**
- * In-app media preview — image zoom + album keyboard nav.
+ * In-app media preview. image zoom + album keyboard nav.
  */
 export default function MediaLightbox({ state, onClose, onPrev, onNext }: Props) {
   const [zoom, setZoom] = useState(1);

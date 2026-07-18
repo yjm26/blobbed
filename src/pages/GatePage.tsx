@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { connectWallet, getConnectedWallet, hasAppSession } from '../../scripts/aptos-client';
 import BrandLoader from '../components/BrandLoader';
-import TrustPanel from '../components/TrustPanel';
 
 function sleep(ms: number) {
   return new Promise((r) => setTimeout(r, ms));
@@ -100,14 +99,13 @@ export default function GatePage() {
               <a href="https://petra.app/" target="_blank" rel="noopener noreferrer">
                 Petra
               </a>{' '}
-              (Wallet Standard) then retry
+              then retry
             </>
           ) : (
             'Petra or any Aptos wallet · shelbynet'
           )}
         </p>
         {error ? <p className="gate-error">{error}</p> : null}
-        {!checking && !entering ? <TrustPanel context="gate" /> : null}
       </main>
 
       {entering ? <BrandLoader overlay variant="enter" label={enterLabel} /> : null}

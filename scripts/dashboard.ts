@@ -75,8 +75,8 @@ async function init() {
     backend === 'neon'
       ? 'Library synced (Neon)'
       : backend === 'memory'
-        ? 'Library on server memory — set DATABASE_URL for durable DB'
-        : 'Library local-only — set DATABASE_URL on Vercel',
+        ? 'Library on server memory - set DATABASE_URL for durable DB'
+        : 'Library local-only - set DATABASE_URL on Vercel',
     backend === 'neon' ? 'ok' : 'info'
   );
   if (backend === 'neon') {
@@ -310,7 +310,7 @@ function wireUi() {
     if (!folder) return;
     const files = listFiles(owner(), currentFolderId);
     if (!files.length) {
-      setStatus('Folder is empty — upload something first', 'err');
+      setStatus('Folder is empty - upload something first', 'err');
       return;
     }
     try {

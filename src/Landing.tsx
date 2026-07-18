@@ -1,7 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import PaperShader from './components/PaperShader';
-import TrustPanel from './components/TrustPanel';
 
 export default function Landing() {
   return (
@@ -47,7 +46,7 @@ export default function Landing() {
           Blobbed encrypts in the browser first. Ciphertext goes to Shelby nodes.
           File keys are wrapped with a key derived from your wallet signature
           before library meta hits the server. Share links keep the raw key in the
-          URL fragment — never as a query string to our API.
+          URL fragment, never as a query string to our API.
         </p>
       </section>
 
@@ -72,7 +71,7 @@ export default function Landing() {
             <h3>Wrap keys</h3>
             <p>
               Each file DEK is wrapped with a vault key from your wallet{' '}
-              <code>signMessage</code>. Neon may hold names and wrapped blobs —
+              <code>signMessage</code>. Neon may hold names and wrapped blobs . 
               not raw DEKs after unlock+migrate.
             </p>
             <blockquote>Library sync without raw keys at rest.</blockquote>
@@ -114,7 +113,7 @@ export default function Landing() {
               <h3>Store</h3>
               <p>
                 Ciphertext is uploaded via a service wallet on shelbynet (MVP
-                relay). Your wallet is identity — you sign to wrap keys, not to
+                relay). Your wallet is identity. you sign to wrap keys, not to
                 pay gas yet.
               </p>
             </div>
@@ -137,15 +136,12 @@ export default function Landing() {
           <span className="idx">03</span>
           <h2 className="band-title">Details</h2>
         </header>
-
-        <TrustPanel context="landing" />
-
-        <div className="faq-list" style={{ marginTop: '1.5rem' }}>
+<div className="faq-list" style={{ marginTop: '1.5rem' }}>
           <details className="faq-row">
             <summary>Can you read my files?</summary>
             <p>
               We never receive plaintext. After wallet wrap, we also should not
-              hold raw DEKs — only wrapped key material plus names/pointers.
+              hold raw DEKs. only wrapped key material plus names/pointers.
               Share links are a different path: whoever has the link can decrypt
               that object. Thumbs you generate are small client-side previews
               stored as data URLs in meta.
@@ -156,7 +152,7 @@ export default function Landing() {
             <p>
               Ciphertext stays on Shelby. Share links still work from any client
               that speaks the same fragment format. Your library index needs the
-              meta store (Neon) or a local export — not only the marketing site.
+              meta store (Neon) or a local export. not only the marketing site.
             </p>
           </details>
           <details className="faq-row">

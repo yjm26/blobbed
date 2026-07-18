@@ -1,12 +1,12 @@
 /**
  * File DEK wrap formats stored in FileMetadata.encryptedKey
  *
- * plain   — base64(32-byte AES key)  [legacy MVP — server/DB can read]
- * bw1.…   — AES-GCM(vaultKey, DEK)   [wallet-derived vault key]
+ * plain   - base64(32-byte AES key)  [legacy MVP - server/DB can read]
+ * bw1.…   - AES-GCM(vaultKey, DEK)   [wallet-derived vault key]
  *
  * Thumbs at rest:
- * plain data: URL — legacy leak (plaintext preview)
- * bt1.… — AES-GCM(vaultKey, utf8 data URL)
+ * plain data: URL - legacy leak (plaintext preview)
+ * bt1.… - AES-GCM(vaultKey, utf8 data URL)
  *
  * Share links always carry the *raw* DEK in the URL fragment (capability).
  * Never put a bw1. blob into a share fragment.
@@ -135,7 +135,7 @@ async function aesGcmDecrypt(
     );
     return new Uint8Array(plain);
   } catch {
-    throw new Error('Cannot unwrap — wrong wallet or corrupted data');
+    throw new Error('Cannot unwrap - wrong wallet or corrupted data');
   }
 }
 
@@ -166,7 +166,7 @@ export async function unwrapFileKey(
   }
 
   if (!vaultKey) {
-    throw new Error('Vault locked — sign with wallet to unlock keys');
+    throw new Error('Vault locked - sign with wallet to unlock keys');
   }
 
   const raw = await aesGcmDecrypt(vaultKey, stored.slice(PREFIX_V1.length));
@@ -198,7 +198,7 @@ export async function unwrapThumbDataUrl(
   if (stored.startsWith('data:')) return stored;
   if (!isWrappedThumb(stored)) return null;
   if (!vaultKey) {
-    throw new Error('Vault locked — cannot decrypt thumb');
+    throw new Error('Vault locked - cannot decrypt thumb');
   }
   const plain = await aesGcmDecrypt(vaultKey, stored.slice(PREFIX_THUMB.length));
   return new TextDecoder().decode(plain);

@@ -27,7 +27,7 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* ===== NAV — fully transparent ===== */
+/* ===== NAV - fully transparent ===== */
 .landing-nav {
   position: fixed;
   top: 0;
@@ -607,7 +607,7 @@ html, body {
   }
 }
 
-/* ===== GATE (middle page — connect wallet) ===== */
+/* ===== GATE (middle page - connect wallet) ===== */
 .gate-page {
   min-height: 100svh;
   min-height: 100dvh;
@@ -1524,7 +1524,7 @@ html, body {
   color: #aaa;
 }
 
-/* Drive in-app media preview (Phase B v1 — full decrypt) */
+/* Drive in-app media preview (Phase B v1 - full decrypt) */
 .media-lightbox {
   position: fixed;
   inset: 0;
@@ -1877,7 +1877,7 @@ html, body {
   }
 }
 
-/* Brand loader — full viewport, never a narrow column strip */
+/* Brand loader - full viewport, never a narrow column strip */
 .brand-loader {
   position: fixed;
   inset: 0;
@@ -2062,7 +2062,7 @@ html, body {
 
 /* Drive staggered reveal */
 .app-page--boot {
-  /* legacy — boot now uses fixed BrandLoader alone */
+  /* legacy - boot now uses fixed BrandLoader alone */
   min-height: 100svh;
 }
 
@@ -2101,7 +2101,7 @@ html, body {
   }
 }
 
-/* File / folder cards — subtle hover lift (not bounce) */
+/* File / folder cards - subtle hover lift (not bounce) */
 .drive-folder-card,
 .app-file-row {
   transition:
@@ -2131,7 +2131,7 @@ html, body {
   transform: scale(1.008);
 }
 
-/* Landing CTA / links — already light; smooth active press */
+/* Landing CTA / links - already light; smooth active press */
 .nav-cta,
 .cta-primary,
 .cta-secondary,
@@ -2216,7 +2216,7 @@ html, body {
   }
 }
 
-/* ——— Trust / vault (Security sprint) ——— */
+/* --- Trust / vault (Security sprint) --- */
 .trust-strip {
   display: flex;
   align-items: center;
@@ -2342,7 +2342,7 @@ html, body {
   animation: status-in 0.35s ease both;
 }
 
-/* ——— UX polish: queue, share sheet, grid, lightbox nav ——— */
+/* --- UX polish: queue, share sheet, grid, lightbox nav --- */
 .upload-queue {
   position: fixed;
   right: 1rem;
@@ -2762,4 +2762,132 @@ html, body {
 }
 .prod-checks li[data-ok='0']::before {
   background: #c07070;
+}
+
+
+/* Filter dropdown */
+.filter-menu {
+  position: relative;
+}
+.filter-menu-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  border: 0;
+  background: transparent;
+  color: rgba(200, 195, 185, 0.7);
+  font-size: 0.7rem;
+  padding: 0.28rem 0.55rem;
+  border-radius: 999px;
+  cursor: pointer;
+  border-left: 1px solid rgba(255, 255, 255, 0.08);
+  margin-left: 0.1rem;
+}
+.filter-menu-trigger:hover,
+.filter-menu-trigger.is-active {
+  color: #f0ebe3;
+}
+.filter-menu.is-open .filter-menu-trigger {
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+}
+.filter-menu-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #8ab4ff;
+  box-shadow: 0 0 6px rgba(120, 160, 255, 0.5);
+}
+.filter-menu-chevron {
+  opacity: 0.55;
+  font-size: 0.6rem;
+}
+.filter-menu-panel {
+  position: absolute;
+  top: calc(100% + 0.4rem);
+  right: 0;
+  z-index: 40;
+  width: min(280px, calc(100vw - 2rem));
+  padding: 0.75rem;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(12, 12, 16, 0.96);
+  backdrop-filter: blur(12px);
+  box-shadow: 0 14px 40px rgba(0, 0, 0, 0.45);
+  text-align: left;
+}
+.filter-menu-label {
+  display: block;
+  margin: 0.55rem 0 0.3rem;
+  font-size: 0.62rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(180, 175, 165, 0.55);
+}
+.filter-menu-label:first-child {
+  margin-top: 0;
+}
+.filter-menu-search {
+  width: 100%;
+  box-sizing: border-box;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(0, 0, 0, 0.35);
+  color: #eee;
+  border-radius: 8px;
+  padding: 0.45rem 0.55rem;
+  font-size: 0.8rem;
+  outline: none;
+}
+.filter-menu-search:focus {
+  border-color: rgba(160, 170, 255, 0.35);
+}
+.filter-menu-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+}
+.filter-chip {
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: transparent;
+  color: rgba(210, 205, 195, 0.7);
+  font-size: 0.7rem;
+  padding: 0.28rem 0.5rem;
+  border-radius: 999px;
+  cursor: pointer;
+}
+.filter-chip:hover {
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.22);
+}
+.filter-chip.is-active {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.18);
+}
+.filter-menu-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 0.75rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+.filter-menu-count {
+  font-size: 0.68rem;
+  color: rgba(180, 175, 165, 0.5);
+}
+.filter-menu-clear {
+  border: 0;
+  background: transparent;
+  color: rgba(200, 195, 185, 0.65);
+  font-size: 0.68rem;
+  cursor: pointer;
+}
+.filter-menu-clear:hover {
+  color: #fff;
+}
+
+.app-toolbar {
+  position: relative;
+  z-index: 5;
 }

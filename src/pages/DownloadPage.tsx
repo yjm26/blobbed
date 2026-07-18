@@ -19,7 +19,7 @@ function toItems(p: SharePayload): ShareFileItem[] {
 }
 
 /**
- * Legacy /download route — single-file download or bounce to /view for albums.
+ * Legacy /download route. single-file download or bounce to /view for albums.
  */
 export default function DownloadPage() {
   const loc = useLocation();
@@ -50,7 +50,7 @@ export default function DownloadPage() {
           setMsg(`Downloading ${item.name}…`);
           await downloadShareItem(item);
         }
-        setMsg('Done — check your downloads folder.');
+        setMsg('Done. Check your downloads folder.');
       } catch (e: unknown) {
         setErr(e instanceof Error ? e.message : String(e));
         setMsg('Download failed');

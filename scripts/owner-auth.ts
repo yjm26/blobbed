@@ -51,7 +51,7 @@ export async function createOwnerAuth(
   payloadHash: string
 ): Promise<OwnerAuthPayload> {
   if (!wallet.publicKey) {
-    throw new Error('Wallet public key required — disconnect and reconnect');
+    throw new Error('Wallet public key required - disconnect and reconnect');
   }
   const timestamp = Date.now();
   const message = buildAuthMessage({

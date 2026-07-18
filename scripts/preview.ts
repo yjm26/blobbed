@@ -17,7 +17,7 @@ async function readStream(
   const reader = stream.getReader();
   const chunks: Uint8Array[] = [];
   let total = 0;
-  // unknown total — pulse ratio gently
+  // unknown total - pulse ratio gently
   let ticks = 0;
   while (true) {
     const { done, value } = await reader.read();
@@ -84,7 +84,7 @@ function guessMime(name: string): string {
   return 'application/octet-stream';
 }
 
-/** Decrypt image/video and return object URL — caller must revoke */
+/** Decrypt image/video and return object URL - caller must revoke */
 export async function previewObjectUrl(
   item: ShareFileItem,
   onProgress?: ProgressFn

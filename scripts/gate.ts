@@ -39,7 +39,7 @@ async function init() {
         return;
       }
     } catch {
-      /* stale session — stay on gate */
+      /* stale session - stay on gate */
     }
     // Stale session flag without live wallet
     sessionStorage.removeItem('blobbed_session');

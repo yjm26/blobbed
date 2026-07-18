@@ -4,7 +4,7 @@ import { MeshGradient } from "@paper-design/shaders-react";
 /**
  * Background Paper Shaders
  * https://21st.dev/@reuno-ui/components/background-paper-shaders
- * Mesh only — no DotOrbit (no floating balls)
+ * Mesh only. no DotOrbit (no floating balls)
  */
 export default function PaperShader() {
   return (

@@ -1,6 +1,6 @@
 /**
  * Client-side thumbnail generation (Phase C).
- * Returns a small JPEG data URL for library grid — not uploaded as separate blob.
+ * Returns a small JPEG data URL for library grid - not uploaded as separate blob.
  */
 
 const MAX_EDGE = 320;
