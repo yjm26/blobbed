@@ -26,6 +26,8 @@ export type FileMetadata = {
   createdAt: string;
   folderId?: string | null;
   expiresAt?: string;
+  encFormat?: 'legacy' | 'chunked';
+  thumbDataUrl?: string;
 };
 
 export type LibrarySnapshot = {
@@ -85,6 +87,8 @@ export async function ensureSchema(): Promise<void> {
         folder_id UUID REFERENCES folders(id) ON DELETE SET NULL,
         created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
         expires_at TIMESTAMPTZ,
+        enc_format VARCHAR(16) DEFAULT 'legacy',
+        thumb_data_url TEXT,
         UNIQUE (owner_address, blob_name)
       )
     `;
@@ -126,6 +130,18 @@ export async function ensureSchema(): Promise<void> {
           ) THEN
             ALTER TABLE files ADD COLUMN shelby_hash VARCHAR(500);
           END IF;
+          IF NOT EXISTS (
+            SELECT 1 FROM information_schema.columns
+            WHERE table_name = 'files' AND column_name = 'enc_format'
+          ) THEN
+            ALTER TABLE files ADD COLUMN enc_format VARCHAR(16) DEFAULT 'legacy';
+          END IF;
+          IF NOT EXISTS (
+            SELECT 1 FROM information_schema.columns
+            WHERE table_name = 'files' AND column_name = 'thumb_data_url'
+          ) THEN
+            ALTER TABLE files ADD COLUMN thumb_data_url TEXT;
+          END IF;
         END IF;
       END $$
     `;
@@ -156,6 +172,8 @@ function rowToFolder(r: Record<string, unknown>): FolderMetadata {
 function rowToFile(r: Record<string, unknown>): FileMetadata {
   const blobName = String(r.blob_name || r.shelby_hash || '');
   const folderId = r.folder_id == null || r.folder_id === '' ? null : String(r.folder_id);
+  const enc = r.enc_format != null ? String(r.enc_format) : undefined;
+  const thumb = r.thumb_data_url != null ? String(r.thumb_data_url) : undefined;
   return {
     id: String(r.id),
     ownerAddress: String(r.owner_address),
@@ -176,6 +194,8 @@ function rowToFile(r: Record<string, unknown>): FileMetadata {
         ? r.expires_at.toISOString()
         : String(r.expires_at)
       : undefined,
+    encFormat: enc === 'chunked' || enc === 'legacy' ? enc : undefined,
+    thumbDataUrl: thumb || undefined,
   };
 }
 
@@ -252,7 +272,8 @@ export async function putLibrary(
     await sql`
       INSERT INTO files (
         id, owner_address, storage_account, blob_name, shelby_hash,
-        original_name, size_bytes, mime_type, encrypted_key, folder_id, created_at, expires_at
+        original_name, size_bytes, mime_type, encrypted_key, folder_id, created_at, expires_at,
+        enc_format, thumb_data_url
       ) VALUES (
         ${file.id}::uuid,
         ${ownerAddress},
@@ -265,14 +286,18 @@ export async function putLibrary(
         ${file.encryptedKey || ''},
         ${file.folderId || null}::uuid,
         ${file.createdAt || new Date().toISOString()}::timestamptz,
-        ${file.expiresAt || null}::timestamptz
+        ${file.expiresAt || null}::timestamptz,
+        ${file.encFormat || 'legacy'},
+        ${file.thumbDataUrl || null}
       )
       ON CONFLICT (id) DO UPDATE SET
         original_name = EXCLUDED.original_name,
         folder_id = EXCLUDED.folder_id,
         encrypted_key = EXCLUDED.encrypted_key,
         mime_type = EXCLUDED.mime_type,
-        size_bytes = EXCLUDED.size_bytes
+        size_bytes = EXCLUDED.size_bytes,
+        enc_format = EXCLUDED.enc_format,
+        thumb_data_url = EXCLUDED.thumb_data_url
     `;
   }
 
@@ -395,7 +420,8 @@ export async function insertFile(file: FileMetadata): Promise<FileMetadata> {
   await sql`
     INSERT INTO files (
       id, owner_address, storage_account, blob_name, shelby_hash,
-      original_name, size_bytes, mime_type, encrypted_key, folder_id, created_at, expires_at
+      original_name, size_bytes, mime_type, encrypted_key, folder_id, created_at, expires_at,
+      enc_format, thumb_data_url
     ) VALUES (
       ${row.id}::uuid,
       ${row.ownerAddress},
@@ -408,7 +434,9 @@ export async function insertFile(file: FileMetadata): Promise<FileMetadata> {
       ${row.encryptedKey},
       ${row.folderId || null}::uuid,
       ${row.createdAt}::timestamptz,
-      ${row.expiresAt || null}::timestamptz
+      ${row.expiresAt || null}::timestamptz,
+      ${row.encFormat || 'legacy'},
+      ${row.thumbDataUrl || null}
     )
     ON CONFLICT (owner_address, blob_name) DO UPDATE SET
       original_name = EXCLUDED.original_name,
@@ -417,7 +445,9 @@ export async function insertFile(file: FileMetadata): Promise<FileMetadata> {
       encrypted_key = EXCLUDED.encrypted_key,
       folder_id = EXCLUDED.folder_id,
       storage_account = EXCLUDED.storage_account,
-      shelby_hash = EXCLUDED.shelby_hash
+      shelby_hash = EXCLUDED.shelby_hash,
+      enc_format = EXCLUDED.enc_format,
+      thumb_data_url = EXCLUDED.thumb_data_url
   `;
   return row;
 }

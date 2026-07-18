@@ -18,6 +18,10 @@ export interface FileMetadata {
   /** null/undefined = root */
   folderId?: string | null;
   expiresAt?: string;
+  /** Phase B: encryption container */
+  encFormat?: 'legacy' | 'chunked';
+  /** Phase C: small JPEG data URL for grid */
+  thumbDataUrl?: string;
 }
 
 export interface FolderMetadata {

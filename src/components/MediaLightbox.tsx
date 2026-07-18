@@ -6,9 +6,11 @@ export type MediaLightboxState = {
   url: string;
   name: string;
   kind: MediaLightboxKind;
-  /** true while decrypting — url may be empty */
   loading?: boolean;
   error?: string;
+  /** 0..1 while loading */
+  progress?: number;
+  progressLabel?: string;
 };
 
 type Props = {
@@ -18,8 +20,7 @@ type Props = {
 
 /**
  * In-app media preview — image or video.
- * Phase B v1: full decrypt → object URL (small/medium files).
- * Progressive MSE later for large videos.
+ * Phase B: chunked download/decrypt with progress; full assemble then play.
  */
 export default function MediaLightbox({ state, onClose }: Props) {
   useEffect(() => {
@@ -37,6 +38,8 @@ export default function MediaLightbox({ state, onClose }: Props) {
   }, [state, onClose]);
 
   if (!state) return null;
+
+  const pct = Math.round(Math.min(1, Math.max(0, state.progress ?? 0)) * 100);
 
   return (
     <div
@@ -66,11 +69,17 @@ export default function MediaLightbox({ state, onClose }: Props) {
         {state.loading ? (
           <div className="media-lightbox-status">
             <span className="media-lightbox-spinner" aria-hidden="true" />
-            <p>Decrypting in your browser…</p>
+            <p>{state.progressLabel || 'Decrypting in your browser…'}</p>
+            <div className="media-lightbox-progress" aria-hidden="true">
+              <span
+                className="media-lightbox-progress-fill"
+                style={{ width: `${Math.max(6, pct)}%` }}
+              />
+            </div>
             <p className="media-lightbox-status-hint">
               {state.kind === 'video'
-                ? 'Video plays after full decrypt (progressive stream later)'
-                : 'Almost ready'}
+                ? `Chunked download · ${pct}%`
+                : `${pct}%`}
             </p>
           </div>
         ) : state.error ? (

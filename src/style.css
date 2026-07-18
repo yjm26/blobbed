@@ -1638,6 +1638,23 @@ html, body {
   margin-bottom: 0.35rem;
 }
 
+.media-lightbox-progress {
+  width: min(16rem, 70vw);
+  height: 2px;
+  margin-top: 0.35rem;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.media-lightbox-progress-fill {
+  display: block;
+  height: 100%;
+  background: rgba(255, 255, 255, 0.55);
+  border-radius: inherit;
+  transition: width 0.2s ease;
+}
+
 @keyframes media-lightbox-in {
   from {
     opacity: 0;

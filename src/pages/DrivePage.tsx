@@ -149,16 +149,34 @@ export default function DrivePage() {
 
   useEffect(() => {
     if (!owner) return;
+    // Seed thumbs from stored data URLs (Phase C) — instant, no decrypt
     for (const f of files) {
-      if (!isImageMime(f.mimeType, f.originalName)) continue;
-      if (thumbs.current.has(f.id)) continue;
-      void previewObjectUrl(fileToShareItem(f))
-        .then((url) => {
+      if (f.thumbDataUrl && !thumbs.current.has(f.id)) {
+        thumbs.current.set(f.id, f.thumbDataUrl);
+      }
+    }
+    setThumbTick((t) => t + 1);
+
+    // Lazy: only decrypt full preview for images missing thumbs (legacy files)
+    let cancelled = false;
+    (async () => {
+      for (const f of files) {
+        if (cancelled) return;
+        if (!isImageMime(f.mimeType, f.originalName)) continue;
+        if (thumbs.current.has(f.id)) continue;
+        try {
+          const url = await previewObjectUrl(fileToShareItem(f));
+          if (cancelled) return;
           thumbs.current.set(f.id, url);
           setThumbTick((t) => t + 1);
-        })
-        .catch(() => {});
-    }
+        } catch {
+          /* skip */
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, [files, owner, tick]);
 
   async function handleFiles(list: FileList | File[]) {
@@ -166,20 +184,23 @@ export default function DrivePage() {
     const arr = Array.from(list);
     if (!arr.length) return;
     try {
-      await uploadFiles(arr, wallet, folderId, (name, i, total) => {
-        setStatus({ msg: `Uploading ${i + 1}/${total}: ${name}`, kind: 'info' });
+      await uploadFiles(arr, wallet, folderId, (name, i, total, phase) => {
+        setStatus({
+          msg: `${phase || 'Uploading'} ${i + 1}/${total}: ${name}`,
+          kind: 'info',
+        });
       });
       setStatus({
         msg: `Uploaded ${arr.length} file${arr.length === 1 ? '' : 's'}`,
         kind: 'ok',
       });
-    } catch (err: unknown) {
+      refresh();
+    } catch (err) {
       setStatus({
         msg: 'Upload failed: ' + (err instanceof Error ? err.message : String(err)),
         kind: 'err',
       });
     }
-    refresh();
   }
 
   function openNewFolder() {
@@ -317,9 +338,11 @@ export default function DrivePage() {
       ? 'video'
       : 'image';
 
-    // Reuse cached thumb URL for images if already decrypted
+    // Instant open for images if we already have a full-res or thumb URL
+    // Prefer decrypt for full quality when thumb is only a data URL JPEG
     const cached = thumbs.current.get(file.id);
-    if (cached && kind === 'image') {
+    const isDataThumb = cached?.startsWith('data:');
+    if (cached && kind === 'image' && !isDataThumb) {
       setLightbox({ url: cached, name: file.originalName, kind: 'image' });
       return;
     }
@@ -329,10 +352,25 @@ export default function DrivePage() {
       name: file.originalName,
       kind,
       loading: true,
+      progress: 0.02,
+      progressLabel: 'Fetching encrypted blob…',
     });
 
     try {
-      const url = await previewObjectUrl(fileToShareItem(file));
+      const url = await previewObjectUrl(fileToShareItem(file), (p) => {
+        const base =
+          p.phase === 'download' ? 0 : p.phase === 'decrypt' ? 0.45 : 0.95;
+        const span = p.phase === 'download' ? 0.45 : p.phase === 'decrypt' ? 0.5 : 0.05;
+        setLightbox((prev) =>
+          prev && prev.loading
+            ? {
+                ...prev,
+                progress: base + p.ratio * span,
+                progressLabel: p.detail || prev.progressLabel,
+              }
+            : prev
+        );
+      });
       if (kind === 'image') {
         thumbs.current.set(file.id, url);
         setThumbTick((t) => t + 1);
@@ -346,7 +384,7 @@ export default function DrivePage() {
         }
         previewUrlRef.current = url;
       }
-      setLightbox({ url, name: file.originalName, kind });
+      setLightbox({ url, name: file.originalName, kind, progress: 1 });
     } catch (err) {
       setLightbox({
         url: '',

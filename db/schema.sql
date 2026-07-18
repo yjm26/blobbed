@@ -24,6 +24,8 @@ CREATE TABLE IF NOT EXISTS files (
   folder_id UUID REFERENCES folders(id) ON DELETE SET NULL,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   expires_at TIMESTAMPTZ,
+  enc_format VARCHAR(16) DEFAULT 'legacy',
+  thumb_data_url TEXT,
   UNIQUE (owner_address, blob_name)
 );
 
@@ -66,6 +68,18 @@ BEGIN
       WHERE table_name = 'files' AND column_name = 'shelby_hash'
     ) THEN
       ALTER TABLE files ADD COLUMN shelby_hash VARCHAR(500);
+    END IF;
+    IF NOT EXISTS (
+      SELECT 1 FROM information_schema.columns
+      WHERE table_name = 'files' AND column_name = 'enc_format'
+    ) THEN
+      ALTER TABLE files ADD COLUMN enc_format VARCHAR(16) DEFAULT 'legacy';
+    END IF;
+    IF NOT EXISTS (
+      SELECT 1 FROM information_schema.columns
+      WHERE table_name = 'files' AND column_name = 'thumb_data_url'
+    ) THEN
+      ALTER TABLE files ADD COLUMN thumb_data_url TEXT;
     END IF;
   END IF;
 END $$;
