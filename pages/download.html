@@ -4,32 +4,34 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Download — Blobbed</title>
-  <link rel="stylesheet" href="/style.css?v=4">
+  <link rel="stylesheet" href="/style.css?v=9">
 </head>
-<body class="app-page flex flex-col min-h-screen">
+<body class="app-page">
+
   <nav class="app-nav">
     <div class="app-logo">Blobbed</div>
-    <a href="/" class="landing-nav-link">Home</a>
+    <a href="/" class="app-nav-link">Home</a>
   </nav>
 
-  <main class="flex flex-col items-center justify-center flex-1 px-4">
-    <div class="text-center mb-8">
-      <h1 class="text-3xl font-extralight mb-2">Download</h1>
-      <p class="text-text-muted text-sm">Decentralized file download</p>
+  <main class="app-download">
+    <div class="download-header">
+      <h1>Download</h1>
+      <p>Decentralized file download</p>
     </div>
 
-    <div id="download-card" class="card w-full max-w-md">
-      <div id="file-info" class="mb-6 hidden">
-        <div class="text-text-primary text-lg mb-1" id="file-name"></div>
-        <div class="text-text-muted text-sm" id="file-size"></div>
+    <div id="download-card" class="download-card">
+      <div id="file-info" class="file-info hidden">
+        <div class="file-name" id="file-name"></div>
+        <div class="file-size" id="file-size"></div>
       </div>
 
-      <button id="download-btn" class="btn-primary w-full">Download File</button>
-      <div id="progress" class="mt-4 hidden">
-        <div class="h-1 bg-surface-raised rounded overflow-hidden">
-          <div id="progress-bar" class="h-full accent-gradient w-0 transition-all"></div>
+      <button id="download-btn" class="download-btn">Download File</button>
+
+      <div id="progress" class="progress hidden">
+        <div class="progress-track">
+          <div id="progress-bar" class="progress-fill"></div>
         </div>
-        <p class="text-text-muted text-xs mt-2" id="progress-text">Downloading...</p>
+        <p class="progress-text" id="progress-text">Downloading...</p>
       </div>
     </div>
   </main>

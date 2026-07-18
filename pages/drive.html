@@ -4,43 +4,44 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Dashboard — Blobbed</title>
-  <link rel="stylesheet" href="/style.css?v=4">
+  <link rel="stylesheet" href="/style.css?v=9">
 </head>
-<body class="app-page min-h-screen flex flex-col">
+<body class="app-page">
+
   <nav class="app-nav">
     <div class="app-logo">Blobbed</div>
-    <div class="flex items-center gap-4">
-      <span id="wallet-address" class="text-text-muted text-sm font-mono"></span>
-      <a href="/" class="landing-nav-link">Home</a>
-      <button id="disconnect" class="text-text-muted hover:text-text-primary text-sm">Disconnect</button>
+    <div class="app-nav-right">
+      <span id="wallet-address" class="wallet-label"></span>
+      <a href="/" class="app-nav-link">Home</a>
+      <button id="disconnect" class="app-nav-link muted">Disconnect</button>
     </div>
   </nav>
 
-  <main class="flex-1 flex">
-    <aside class="w-64 border-r border-border p-6">
-      <button id="upload-btn" class="btn-primary w-full mb-6">+ New Upload</button>
-      <div class="space-y-2">
-        <div class="text-text-secondary text-sm font-medium">My Files</div>
-        <div class="text-text-muted text-sm pl-2">All Files</div>
-        <div class="text-text-muted text-sm pl-2">Shared</div>
+  <main class="app-main">
+    <aside class="app-sidebar">
+      <button id="upload-btn" class="upload-btn">+ New Upload</button>
+      <div class="sidebar-menu">
+        <div class="sidebar-label">My Files</div>
+        <div class="sidebar-item active">All Files</div>
+        <div class="sidebar-item">Shared</div>
       </div>
     </aside>
 
-    <section class="flex-1 p-8">
-      <div id="drop-zone" class="drop-zone w-full mb-8 hidden">
-        <p class="text-text-muted">Drop files here</p>
+    <section class="app-content">
+      <div id="drop-zone" class="drop-zone hidden">
+        <p>Drop files here</p>
       </div>
 
-      <div id="file-list" class="space-y-2"></div>
+      <div id="file-list" class="file-list"></div>
 
-      <div id="empty-state" class="text-center py-20">
-        <p class="text-text-muted text-lg">No files yet</p>
-        <p class="text-text-muted text-sm mt-2">Upload your first file</p>
+      <div id="empty-state" class="empty-state">
+        <p>No files yet</p>
+        <p class="empty-hint">Upload your first file</p>
       </div>
     </section>
   </main>
 
-  <input type="file" id="file-input" class="hidden" multiple>
+  <input type="file" id="file-input" class="hidden">
   <script type="module" src="/scripts/dashboard.ts"></script>
 </body>
 </html>
