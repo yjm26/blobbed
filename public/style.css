@@ -89,7 +89,109 @@ body::before {
   color: var(--text-primary);
 }
 
-/* ===== HERO ===== */
+/* Topology.vc style 3D topography hero */
+
+.topology-hero {
+  min-height: 100vh;
+  display: flex;
+  align-items: flex-end;
+  padding: 0 3rem 8rem;
+  position: relative;
+  overflow: hidden;
+  background: #0a0a0a;
+}
+
+.topo-scene {
+  position: absolute;
+  inset: -20% -10% -20% -10%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  perspective: 1200px;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.topo-layer {
+  position: absolute;
+  border-radius: 50%;
+  aspect-ratio: 1;
+  border: 2px solid transparent;
+  background: linear-gradient(#0a0a0a, #0a0a0a) padding-box,
+              conic-gradient(
+                from calc(var(--i) * 30deg + var(--rot, 0deg)),
+                hsl(calc(var(--i) * 35), 80%, 55%),
+                hsl(calc(var(--i) * 35 + 60), 80%, 55%),
+                hsl(calc(var(--i) * 35 + 120), 80%, 55%),
+                hsl(calc(var(--i) * 35 + 180), 80%, 55%),
+                hsl(calc(var(--i) * 35 + 240), 80%, 55%),
+                hsl(calc(var(--i) * 35 + 300), 80%, 55%),
+                hsl(calc(var(--i) * 35), 80%, 55%)
+              ) border-box;
+  animation: topo-rotate 20s linear infinite,
+             topo-breathe 8s ease-in-out infinite;
+  animation-delay: calc(var(--i) * -1.5s), calc(var(--i) * -0.8s);
+  box-shadow:
+    0 20px 60px rgba(0,0,0,0.8),
+    inset 0 0 40px rgba(0,0,0,0.9);
+}
+
+/* Layer sizes — funnel vortex */
+.topo-layer:nth-child(1)  { width: 100px;  --i: 0;  }
+.topo-layer:nth-child(2)  { width: 160px;  --i: 1;  }
+.topo-layer:nth-child(3)  { width: 220px;  --i: 2;  }
+.topo-layer:nth-child(4)  { width: 290px;  --i: 3;  }
+.topo-layer:nth-child(5)  { width: 370px;  --i: 4;  }
+.topo-layer:nth-child(6)  { width: 460px;  --i: 5;  }
+.topo-layer:nth-child(7)  { width: 560px;  --i: 6;  }
+.topo-layer:nth-child(8)  { width: 670px;  --i: 7;  }
+.topo-layer:nth-child(9)  { width: 790px;  --i: 8;  }
+.topo-layer:nth-child(10) { width: 920px;  --i: 9;  }
+.topo-layer:nth-child(11) { width: 1060px; --i: 10; }
+.topo-layer:nth-child(12) { width: 1200px; --i: 11; }
+
+@keyframes topo-rotate {
+  from { --rot: 0deg; }
+  to   { --rot: 360deg; }
+}
+
+/* CSS @property needed for conic gradient animation — fallback below */
+@property --rot {
+  syntax: '<angle>';
+  inherits: false;
+  initial-value: 0deg;
+}
+
+@keyframes topo-breathe {
+  0%, 100% {
+    transform: translateZ(0px) rotateX(55deg);
+  }
+  50% {
+    transform: translateZ(30px) rotateX(50deg);
+  }
+}
+
+/* Fallback for browsers without @property — static rotation + breathe */
+@supports not (background: paint(something)) {
+  .topo-layer {
+    animation: topo-breathe 8s ease-in-out infinite;
+    animation-delay: calc(var(--i) * -0.8s);
+    border-color: hsl(calc(var(--i) * 30), 70%, 50%);
+  }
+}
+
+.topology-content {
+  position: relative;
+  z-index: 10;
+  max-width: 700px;
+}
+
+/* Dimmed line in hero */
+.hero-title .dim {
+  color: var(--text-muted);
+}
+
+/* ===== HERO (default non-topology) ===== */
 
 .landing-hero {
   min-height: 100vh;
