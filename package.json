@@ -13,6 +13,7 @@
     "@aptos-labs/ts-sdk": "^5.0.0",
     "@aptos-labs/wallet-adapter-react": "^3.7.9",
     "@aptos-labs/wallet-standard": "^0.5.2",
+    "@neondatabase/serverless": "^1.1.0",
     "@paper-design/shaders": "^0.0.77",
     "@paper-design/shaders-react": "^0.0.77",
     "@react-three/fiber": "^8.17.10",

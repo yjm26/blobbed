@@ -67,15 +67,8 @@ export async function uploadFile(
     folderId,
   };
 
-  // Owner library (local) — survives server cold start
-  addFile(wallet.address, meta);
-
-  // Best-effort server meta
-  fetch('/api/files', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ ...meta, blobHash: blobName }),
-  }).catch(() => {});
+  // Durable library (Neon when DATABASE_URL set) + local cache
+  await addFile(wallet.address, meta);
 
   return {
     storageAccount,

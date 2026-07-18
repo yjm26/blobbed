@@ -8,7 +8,20 @@ function empty(): LibrarySnapshot {
   return { version: 1, folders: [], files: [] };
 }
 
-export function loadLibrary(ownerAddress: string): LibrarySnapshot {
+/** In-memory session cache (hydrated from API + localStorage). */
+const cache = new Map<string, LibrarySnapshot>();
+
+let lastBackend: 'neon' | 'memory' | 'local' | 'unknown' = 'unknown';
+
+export function getLibraryBackend(): typeof lastBackend {
+  return lastBackend;
+}
+
+function cacheKey(owner: string): string {
+  return owner.toLowerCase();
+}
+
+function readLocal(ownerAddress: string): LibrarySnapshot {
   try {
     const raw = localStorage.getItem(keyFor(ownerAddress));
     if (!raw) return empty();
@@ -24,53 +37,210 @@ export function loadLibrary(ownerAddress: string): LibrarySnapshot {
   }
 }
 
-export function saveLibrary(ownerAddress: string, lib: LibrarySnapshot): void {
+function writeLocal(ownerAddress: string, lib: LibrarySnapshot): void {
   localStorage.setItem(keyFor(ownerAddress), JSON.stringify(lib));
+  cache.set(cacheKey(ownerAddress), lib);
 }
 
-export function createFolder(ownerAddress: string, name: string): FolderMetadata {
-  const lib = loadLibrary(ownerAddress);
+function getCached(ownerAddress: string): LibrarySnapshot {
+  const k = cacheKey(ownerAddress);
+  if (cache.has(k)) return cache.get(k)!;
+  const local = readLocal(ownerAddress);
+  cache.set(k, local);
+  return local;
+}
+
+async function apiGet(ownerAddress: string): Promise<LibrarySnapshot | null> {
+  try {
+    const res = await fetch(
+      `/api/library?owner=${encodeURIComponent(ownerAddress)}`,
+      { cache: 'no-store' }
+    );
+    if (!res.ok) return null;
+    const data = await res.json();
+    if (data.backend === 'neon' || data.backend === 'memory') {
+      lastBackend = data.backend;
+    }
+    return {
+      version: 1,
+      folders: Array.isArray(data.folders) ? data.folders : [],
+      files: Array.isArray(data.files) ? data.files : [],
+    };
+  } catch {
+    return null;
+  }
+}
+
+async function apiPost(body: Record<string, unknown>): Promise<Record<string, unknown> | null> {
+  try {
+    const res = await fetch('/api/library', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    if (!res.ok) return null;
+    const data = (await res.json()) as Record<string, unknown>;
+    if (data.backend === 'neon' || data.backend === 'memory') {
+      lastBackend = data.backend as 'neon' | 'memory';
+    }
+    return data;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Load library: prefer durable API, merge/migrate from localStorage if API empty.
+ * Always keeps a local cache for offline-ish UX.
+ */
+export async function hydrateLibrary(ownerAddress: string): Promise<LibrarySnapshot> {
+  const local = readLocal(ownerAddress);
+  const remote = await apiGet(ownerAddress);
+
+  if (!remote) {
+    lastBackend = 'local';
+    writeLocal(ownerAddress, local);
+    return local;
+  }
+
+  const remoteEmpty = remote.folders.length === 0 && remote.files.length === 0;
+  const localHasData = local.folders.length > 0 || local.files.length > 0;
+
+  // One-shot migrate: local → durable when server empty
+  if (remoteEmpty && localHasData) {
+    const synced = await apiPost({
+      op: 'sync',
+      ownerAddress,
+      folders: local.folders,
+      files: local.files,
+    });
+    if (synced && Array.isArray(synced.folders)) {
+      const lib: LibrarySnapshot = {
+        version: 1,
+        folders: synced.folders as FolderMetadata[],
+        files: (synced.files as FileMetadata[]) || [],
+      };
+      writeLocal(ownerAddress, lib);
+      return lib;
+    }
+  }
+
+  // Prefer remote when it has data; else local
+  const lib =
+    !remoteEmpty
+      ? remote
+      : localHasData
+        ? local
+        : remote;
+
+  writeLocal(ownerAddress, lib);
+  return lib;
+}
+
+export function loadLibrary(ownerAddress: string): LibrarySnapshot {
+  return getCached(ownerAddress);
+}
+
+export function saveLibrary(ownerAddress: string, lib: LibrarySnapshot): void {
+  writeLocal(ownerAddress, lib);
+}
+
+export async function createFolder(
+  ownerAddress: string,
+  name: string
+): Promise<FolderMetadata> {
   const folder: FolderMetadata = {
     id: crypto.randomUUID(),
     ownerAddress,
     name: name.trim() || 'Untitled folder',
     createdAt: new Date().toISOString(),
   };
-  lib.folders.unshift(folder);
-  saveLibrary(ownerAddress, lib);
-  return folder;
+
+  const remote = await apiPost({
+    op: 'createFolder',
+    ownerAddress,
+    name: folder.name,
+    id: folder.id,
+  });
+
+  const saved =
+    remote && remote.folder
+      ? (remote.folder as FolderMetadata)
+      : folder;
+
+  const lib = getCached(ownerAddress);
+  lib.folders = [saved, ...lib.folders.filter((f) => f.id !== saved.id)];
+  writeLocal(ownerAddress, lib);
+  return saved;
 }
 
-export function renameFolder(ownerAddress: string, folderId: string, name: string): void {
-  const lib = loadLibrary(ownerAddress);
+export async function renameFolder(
+  ownerAddress: string,
+  folderId: string,
+  name: string
+): Promise<void> {
+  const next = name.trim();
+  if (!next) return;
+
+  await apiPost({
+    op: 'renameFolder',
+    ownerAddress,
+    folderId,
+    name: next,
+  });
+
+  const lib = getCached(ownerAddress);
   const f = lib.folders.find((x) => x.id === folderId);
   if (f) {
-    f.name = name.trim() || f.name;
-    saveLibrary(ownerAddress, lib);
+    f.name = next;
+    writeLocal(ownerAddress, lib);
   }
 }
 
-export function deleteFolder(ownerAddress: string, folderId: string): void {
-  const lib = loadLibrary(ownerAddress);
+export async function deleteFolder(ownerAddress: string, folderId: string): Promise<void> {
+  await apiPost({
+    op: 'deleteFolder',
+    ownerAddress,
+    folderId,
+  });
+
+  const lib = getCached(ownerAddress);
   lib.folders = lib.folders.filter((f) => f.id !== folderId);
-  // files become root
   for (const file of lib.files) {
     if (file.folderId === folderId) file.folderId = null;
   }
-  saveLibrary(ownerAddress, lib);
+  writeLocal(ownerAddress, lib);
 }
 
-export function addFile(ownerAddress: string, file: FileMetadata): FileMetadata {
-  const lib = loadLibrary(ownerAddress);
-  lib.files.unshift(file);
-  saveLibrary(ownerAddress, lib);
-  return file;
+export async function addFile(
+  ownerAddress: string,
+  file: FileMetadata
+): Promise<FileMetadata> {
+  const remote = await apiPost({
+    op: 'addFile',
+    ownerAddress,
+    file,
+  });
+
+  const saved =
+    remote && remote.file ? (remote.file as FileMetadata) : file;
+
+  const lib = getCached(ownerAddress);
+  lib.files = [saved, ...lib.files.filter((f) => f.id !== saved.id)];
+  writeLocal(ownerAddress, lib);
+  return saved;
 }
 
-export function removeFile(ownerAddress: string, fileId: string): void {
-  const lib = loadLibrary(ownerAddress);
+export async function removeFile(ownerAddress: string, fileId: string): Promise<void> {
+  await apiPost({
+    op: 'deleteFile',
+    ownerAddress,
+    fileId,
+  });
+
+  const lib = getCached(ownerAddress);
   lib.files = lib.files.filter((f) => f.id !== fileId);
-  saveLibrary(ownerAddress, lib);
+  writeLocal(ownerAddress, lib);
 }
 
 export function listFolders(ownerAddress: string): FolderMetadata[] {
@@ -94,4 +264,8 @@ export function getFolder(
 
 export function countFilesInFolder(ownerAddress: string, folderId: string): number {
   return listFiles(ownerAddress, folderId).length;
+}
+
+export function listAllFiles(ownerAddress: string): FileMetadata[] {
+  return loadLibrary(ownerAddress).files;
 }

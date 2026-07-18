@@ -4,9 +4,12 @@ import {
   createFolder,
   listFiles,
   listFolders,
+  listAllFiles,
   removeFile,
   getFolder,
   countFilesInFolder,
+  hydrateLibrary,
+  getLibraryBackend,
 } from './library-store';
 import {
   generateFileShareLink,
@@ -48,6 +51,21 @@ async function init() {
   if (chip) {
     chip.textContent = wallet.address.slice(0, 6) + '…' + wallet.address.slice(-4);
     chip.setAttribute('title', wallet.address);
+  }
+
+  setStatus('Syncing library…', 'info');
+  await hydrateLibrary(wallet.address);
+  const backend = getLibraryBackend();
+  setStatus(
+    backend === 'neon'
+      ? 'Library synced (Neon)'
+      : backend === 'memory'
+        ? 'Library on server memory — set DATABASE_URL for durable DB'
+        : 'Library local-only — set DATABASE_URL on Vercel',
+    backend === 'neon' ? 'ok' : 'info'
+  );
+  if (backend === 'neon') {
+    setTimeout(() => setStatus('', 'info'), 2200);
   }
 
   wireUi();
@@ -161,7 +179,8 @@ function render() {
       fileList.classList.remove('hidden');
       fileList.innerHTML = files
         .map((f) => {
-          const canPreview = isImageMime(f.mimeType, f.originalName) || isVideoMime(f.mimeType, f.originalName);
+          const canPreview =
+            isImageMime(f.mimeType, f.originalName) || isVideoMime(f.mimeType, f.originalName);
           return `
         <article class="app-file-row" data-file-id="${escapeHtml(f.id)}">
           <div class="app-file-thumb" data-thumb="${escapeHtml(f.id)}">
@@ -192,7 +211,6 @@ function render() {
         })
         .join('');
 
-      // Lazy thumbs for images
       for (const f of files) {
         if (isImageMime(f.mimeType, f.originalName)) {
           void loadThumb(f);
@@ -225,14 +243,7 @@ async function loadThumb(f: FileMetadata) {
 
 function findFile(id: string): FileMetadata | undefined {
   if (!wallet) return undefined;
-  const root = listFiles(owner(), null);
-  const inFolder = currentFolderId ? listFiles(owner(), currentFolderId) : [];
-  const allFolders = listFolders(owner()).flatMap((fol) => listFiles(owner(), fol.id));
-  return (
-    inFolder.find((f) => f.id === id) ||
-    root.find((f) => f.id === id) ||
-    allFolders.find((f) => f.id === id)
-  );
+  return listAllFiles(owner()).find((f) => f.id === id);
 }
 
 async function handleFiles(fileList: FileList | File[]) {
@@ -261,10 +272,12 @@ function wireUi() {
     if (!wallet) return;
     const name = prompt('Folder name', 'Album');
     if (!name) return;
-    const folder = createFolder(owner(), name);
-    currentFolderId = folder.id;
-    setStatus(`Folder “${folder.name}” created`, 'ok');
-    render();
+    void (async () => {
+      const folder = await createFolder(owner(), name);
+      currentFolderId = folder.id;
+      setStatus(`Folder “${folder.name}” created`, 'ok');
+      render();
+    })();
   });
 
   document.getElementById('btn-back')?.addEventListener('click', () => {
@@ -295,7 +308,6 @@ function wireUi() {
     }
   });
 
-  // Event delegation for folder open / file actions
   document.body.addEventListener('click', async (e) => {
     const t = e.target as HTMLElement;
     const openBtn = t.closest('[data-open-folder]') as HTMLElement | null;
@@ -312,7 +324,7 @@ function wireUi() {
         const link = generateFileShareLink(file);
         await navigator.clipboard.writeText(link);
         setStatus('Share link copied', 'ok');
-      } catch (err) {
+      } catch {
         setStatus('Share failed', 'err');
       }
       return;
@@ -320,7 +332,7 @@ function wireUi() {
 
     if (t.classList.contains('delete-btn') && t.dataset.id) {
       if (!confirm('Remove from your library? (blob stays on Shelby until expiry)')) return;
-      removeFile(owner(), t.dataset.id);
+      await removeFile(owner(), t.dataset.id);
       render();
       return;
     }
@@ -332,7 +344,6 @@ function wireUi() {
         setStatus('Loading preview…', 'info');
         const url = await previewObjectUrl(fileToShareItem(file));
         thumbUrls.set(file.id, url);
-        // simple window preview
         const w = window.open('', '_blank');
         if (w) {
           if (isImageMime(file.mimeType, file.originalName)) {
@@ -386,7 +397,6 @@ function wireUi() {
   });
 }
 
-// re-export helper used above - fileToShareItem is in share.ts
 init().catch((err) => {
   console.error(err);
   window.location.href = GATE;
