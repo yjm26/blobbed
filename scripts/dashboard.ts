@@ -1,4 +1,8 @@
-import { connectWallet, getConnectedWallet, disconnectWallet } from './aptos-client';
+import {
+  getConnectedWallet,
+  disconnectWallet,
+  hasAppSession,
+} from './aptos-client';
 import { uploadFiles } from './upload';
 import {
   createFolder,
@@ -31,18 +35,22 @@ let wallet: { address: string; publicKey: string } | null = null;
 let currentFolderId: string | null = null;
 const thumbUrls = new Map<string, string>();
 
+function goGate() {
+  window.location.replace(GATE);
+}
+
 async function init() {
+  // Hard gate: no app session → must Connect on gate (even if Petra still authorized)
+  if (!hasAppSession()) {
+    goGate();
+    return;
+  }
+
   wallet = await getConnectedWallet();
   if (!wallet?.address) {
-    try {
-      wallet = await connectWallet();
-    } catch {
-      window.location.href = GATE;
-      return;
-    }
-  }
-  if (!wallet?.address) {
-    window.location.href = GATE;
+    // Session stale / wallet locked / disconnected at extension
+    await disconnectWallet().catch(() => {});
+    goGate();
     return;
   }
 
@@ -170,7 +178,6 @@ function render() {
     }
   }
 
-  // Files
   if (fileList) {
     if (files.length === 0) {
       fileList.innerHTML = '';
@@ -391,13 +398,25 @@ function wireUi() {
   });
 
   document.getElementById('disconnect')?.addEventListener('click', async () => {
+    const btn = document.getElementById('disconnect') as HTMLButtonElement | null;
+    if (btn) {
+      btn.disabled = true;
+      btn.textContent = '…';
+    }
     wallet = null;
-    await disconnectWallet();
-    window.location.href = GATE;
+    try {
+      await disconnectWallet();
+    } catch {
+      // still wipe local session
+      sessionStorage.removeItem('blobbed_session');
+      sessionStorage.removeItem('blobbed_wallet');
+      sessionStorage.removeItem('blobbed_wallet_name');
+    }
+    goGate();
   });
 }
 
 init().catch((err) => {
   console.error(err);
-  window.location.href = GATE;
+  goGate();
 });

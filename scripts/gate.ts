@@ -1,4 +1,4 @@
-import { connectWallet, getConnectedWallet } from './aptos-client';
+import { connectWallet, getConnectedWallet, hasAppSession } from './aptos-client';
 import '../src/style.css';
 
 const DASHBOARD = '/pages/drive.html';
@@ -20,25 +20,37 @@ function clearError() {
 }
 
 function goDashboard() {
-  window.location.href = DASHBOARD;
+  window.location.replace(DASHBOARD);
 }
 
 async function init() {
-  // Already connected → skip gate
-  try {
-    const existing = await getConnectedWallet();
-    if (existing?.address) {
-      if (subEl) subEl.textContent = 'Wallet connected';
-      if (btn) {
-        btn.textContent = 'Entering…';
-        btn.disabled = true;
+  // Only skip gate if THIS tab already completed an explicit connect.
+  // Do not treat Petra "still authorized" as logged-in after Disconnect.
+  if (hasAppSession()) {
+    try {
+      const existing = await getConnectedWallet();
+      if (existing?.address) {
+        if (subEl) subEl.textContent = 'Wallet connected';
+        if (btn) {
+          btn.textContent = 'Entering…';
+          btn.disabled = true;
+        }
+        goDashboard();
+        return;
       }
-      goDashboard();
-      return;
+    } catch {
+      /* stale session — stay on gate */
     }
-  } catch {
-    /* stay on gate */
+    // Stale session flag without live wallet
+    sessionStorage.removeItem('blobbed_session');
+    sessionStorage.removeItem('blobbed_wallet');
   }
+
+  if (btn) {
+    btn.disabled = false;
+    btn.textContent = 'Connect wallet';
+  }
+  if (subEl) subEl.textContent = 'Connect a wallet to enter';
 
   btn?.addEventListener('click', async () => {
     clearError();
@@ -46,8 +58,9 @@ async function init() {
     btn.disabled = true;
     btn.textContent = 'Connecting…';
     try {
+      // Always interactive connect from the button
       const wallet = await connectWallet();
-      sessionStorage.setItem('blobbed_wallet', wallet.address);
+      if (!wallet?.address) throw new Error('No address returned');
       if (subEl) subEl.textContent = 'Connected';
       btn.textContent = 'Entering…';
       goDashboard();
@@ -58,7 +71,7 @@ async function init() {
       btn.textContent = 'Connect wallet';
       if (hintEl && /not installed/i.test(msg)) {
         hintEl.innerHTML =
-      'Install <a href="https://petra.app/" target="_blank" rel="noopener">Petra</a> (Wallet Standard) then retry';
+          'Install <a href="https://petra.app/" target="_blank" rel="noopener">Petra</a> (Wallet Standard) then retry';
       }
     }
   });
