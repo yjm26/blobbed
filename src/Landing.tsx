@@ -17,13 +17,13 @@ export default function Landing() {
         <div className="hero-shader">
           <MeshGradient
             className="w-full h-full absolute inset-0"
-            colors={['#000000', '#0f0f0f', '#1a1a1a', '#2a2a2a', '#ffffff']}
-            speed={0.85}
-            backgroundColor="#000000"
-            distortion={0.45}
-            swirl={0.25}
-            grainMixer={0.35}
-            grainOverlay={0.4}
+            colors={['#050505', '#0a0a0a', '#111111', '#1a1a1a', '#222222']}
+            speed={0.6}
+            backgroundColor="#050505"
+            distortion={0.6}
+            swirl={0.15}
+            grainMixer={0.5}
+            grainOverlay={0.55}
           />
         </div>
 
