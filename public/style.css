@@ -98,63 +98,7 @@ body::before {
   padding: 0 3rem;
   position: relative;
   overflow: hidden;
-}
-
-.hero-bg {
-  position: absolute;
-  inset: 0;
-  z-index: 0;
-  overflow: hidden;
-}
-
-/* Light beams — diagonal, bright, animated */
-.light-beam {
-  position: absolute;
-  width: 200%;
-  height: 2px;
-  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.15), transparent);
-  transform-origin: left center;
-  animation: beam-sweep 8s ease-in-out infinite;
-}
-
-.light-beam-1 {
-  top: 30%;
-  left: -50%;
-  transform: rotate(-25deg);
-  animation-delay: 0s;
-}
-
-.light-beam-2 {
-  top: 50%;
-  left: -50%;
-  transform: rotate(-20deg);
-  animation-delay: -3s;
-  opacity: 0.6;
-}
-
-.light-beam-3 {
-  top: 70%;
-  left: -50%;
-  transform: rotate(-30deg);
-  animation-delay: -5s;
-  opacity: 0.4;
-}
-
-@keyframes beam-sweep {
-  0%, 100% {
-    transform: rotate(-25deg) translateX(-100%);
-    opacity: 0;
-  }
-  20% {
-    opacity: 1;
-  }
-  80% {
-    opacity: 1;
-  }
-  100% {
-    transform: rotate(-25deg) translateX(100%);
-    opacity: 0;
-  }
+  background: var(--bg);
 }
 
 .hero-content {
@@ -255,214 +199,94 @@ body::before {
   color: var(--text-secondary);
 }
 
-/* ===== CONTENT SECTIONS ===== */
+/* ===== STICKY SECTION (Topology.vc Style) ===== */
 
-.content-section {
-  padding: 8rem 3rem;
-  position: relative;
-}
-
-.content-section.alt-bg {
-  background-color: var(--bg-alt);
-}
-
-.section-inner {
-  max-width: 1000px;
+.sticky-section {
+  display: flex;
+  max-width: 1200px;
   margin: 0 auto;
-}
-
-.section-label {
-  font-size: 0.6875rem;
-  font-weight: 400;
-  letter-spacing: 0.25em;
-  text-transform: uppercase;
-  color: var(--text-muted);
-  margin-bottom: 1.5rem;
-}
-
-.section-title {
-  font-size: clamp(2.5rem, 6vw, 5rem);
-  font-weight: 200;
-  line-height: 1.1;
-  letter-spacing: -0.03em;
-  color: var(--text-primary);
-  margin-bottom: 4rem;
-}
-
-/* ===== SCROLL REVEAL ===== */
-
-[data-reveal] {
-  opacity: 1;
-  transform: translateY(0);
-  transition: opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1), 
-              transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-[data-reveal].hidden {
-  opacity: 0;
-  transform: translateY(40px);
-}
-
-/* ===== PROBLEM ===== */
-
-.problem-items {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  padding: 8rem 3rem;
+  min-height: 100vh;
   gap: 4rem;
 }
 
-.problem-block {
+.sticky-section.alt-bg {
+  background-color: var(--bg-alt);
+  max-width: none;
+  padding-left: 0;
+  padding-right: 0;
+}
+
+.sticky-section.alt-bg .sticky-sidebar {
+  padding-left: 3rem;
+}
+
+.sticky-section.alt-bg .sticky-content {
+  padding-right: 3rem;
+}
+
+.sticky-sidebar {
+  width: 40%;
+  position: sticky;
+  top: 100px;
+  align-self: flex-start;
+  height: auto;
+}
+
+.section-label {
+  font-size: 0.75rem;
+  font-weight: 400;
+  letter-spacing: 0.15em;
+  color: var(--text-muted);
+  margin-bottom: 1.5rem;
+}
+
+.sticky-title {
+  font-size: clamp(3rem, 8vw, 6rem);
+  font-weight: 200;
+  line-height: 1.0;
+  letter-spacing: -0.03em;
+  color: var(--text-primary);
+}
+
+.sticky-content {
+  width: 60%;
+  display: flex;
+  flex-direction: column;
+  gap: 6rem;
+}
+
+/* Items */
+.sticky-item {
   position: relative;
 }
 
-.problem-num {
-  display: block;
-  font-size: 0.6875rem;
-  font-weight: 400;
-  letter-spacing: 0.2em;
-  color: var(--text-muted);
-  margin-bottom: 1.5rem;
-}
-
-.problem-block h3 {
-  font-size: 1.25rem;
-  font-weight: 300;
-  color: var(--text-primary);
-  margin-bottom: 1rem;
-  letter-spacing: -0.01em;
-}
-
-.problem-block p {
-  font-size: 0.9375rem;
-  color: var(--text-secondary);
-  line-height: 1.8;
-}
-
-/* ===== PRINCIPLES (Figure Style) ===== */
-
-.principle-items {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 3rem;
-}
-
-.principle-block {
-  display: block;
-  margin: 0;
-  padding: 0;
-  border: none;
-  background: none;
-}
-
-.principle-num {
-  display: block;
-  font-size: 0.6875rem;
-  font-weight: 400;
-  letter-spacing: 0.2em;
-  color: var(--text-muted);
-  margin-bottom: 1.5rem;
-}
-
-.principle-block h3 {
-  font-size: 1.5rem;
+.sticky-item h3 {
+  font-size: 1.75rem;
   font-weight: 300;
   color: var(--text-primary);
   margin-bottom: 1.5rem;
   letter-spacing: -0.02em;
 }
 
-.principle-block p {
-  font-size: 0.9375rem;
+.sticky-item p {
+  font-size: 1rem;
   color: var(--text-secondary);
   line-height: 1.8;
-  margin-bottom: 1.5rem;
+  margin-bottom: 2rem;
 }
 
-.principle-block blockquote {
+.sticky-item blockquote {
   font-size: 0.8125rem;
   color: var(--text-muted);
   font-style: italic;
   line-height: 1.7;
   border-top: 1px solid var(--border);
   padding-top: 1.5rem;
-  margin-top: 2rem;
 }
 
-/* ===== FEATURES ===== */
-
-.feature-items {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 4rem;
-}
-
-.feature-block {
-  position: relative;
-  padding-top: 2rem;
-  border-top: 1px solid var(--border);
-}
-
-.feature-num {
-  display: block;
-  font-size: 0.6875rem;
-  font-weight: 400;
-  letter-spacing: 0.2em;
-  color: var(--text-muted);
-  margin-bottom: 1.5rem;
-}
-
-.feature-block h3 {
-  font-size: 1.375rem;
-  font-weight: 300;
-  color: var(--text-primary);
-  margin-bottom: 1rem;
-  letter-spacing: -0.02em;
-}
-
-.feature-block p {
-  font-size: 0.9375rem;
-  color: var(--text-secondary);
-  line-height: 1.8;
-}
-
-/* ===== HOW IT WORKS ===== */
-
-.how-items {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 4rem;
-}
-
-.how-block {
-  position: relative;
-}
-
-.how-num {
-  display: block;
-  font-size: 0.6875rem;
-  font-weight: 400;
-  letter-spacing: 0.2em;
-  color: var(--text-muted);
-  margin-bottom: 1.5rem;
-}
-
-.how-block h3 {
-  font-size: 1.5rem;
-  font-weight: 300;
-  color: var(--text-primary);
-  margin-bottom: 1rem;
-  letter-spacing: -0.02em;
-}
-
-.how-block p {
-  font-size: 0.9375rem;
-  color: var(--text-secondary);
-  line-height: 1.8;
-}
-
-/* ===== MECHANISM ===== */
-
-.mech-items {
+/* Mechanism rows in sticky */
+.mech-rows {
   border-top: 1px solid var(--border);
 }
 
@@ -501,12 +325,7 @@ body::before {
   max-width: 400px;
 }
 
-/* ===== FAQ ===== */
-
-.faq-items {
-  border-top: 1px solid var(--border);
-}
-
+/* FAQ in sticky */
 .faq-block {
   border-bottom: 1px solid var(--border);
   transition: border-color 0.3s ease;
