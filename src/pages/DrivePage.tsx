@@ -36,9 +36,15 @@ function formatSize(bytes: number): string {
   return (bytes / (1024 * 1024 * 1024)).toFixed(1) + ' GB';
 }
 
+type DialogState =
+  | null
+  | { type: 'folder' }
+  | { type: 'delete'; fileId: string; name: string };
+
 export default function DrivePage() {
   const nav = useNavigate();
   const inputRef = useRef<HTMLInputElement>(null);
+  const folderInputRef = useRef<HTMLInputElement>(null);
   const [wallet, setWallet] = useState<{ address: string; publicKey: string } | null>(
     null
   );
@@ -49,6 +55,9 @@ export default function DrivePage() {
     null
   );
   const [drag, setDrag] = useState(false);
+  const [dialog, setDialog] = useState<DialogState>(null);
+  const [folderName, setFolderName] = useState('Album');
+  const [dialogBusy, setDialogBusy] = useState(false);
   const thumbs = useRef(new Map<string, string>());
   const [, setThumbTick] = useState(0);
 
@@ -94,6 +103,27 @@ export default function DrivePage() {
       cancelled = true;
     };
   }, [nav, refresh]);
+
+  // Focus folder name when modal opens
+  useEffect(() => {
+    if (dialog?.type === 'folder') {
+      const t = window.setTimeout(() => {
+        folderInputRef.current?.focus();
+        folderInputRef.current?.select();
+      }, 30);
+      return () => window.clearTimeout(t);
+    }
+  }, [dialog]);
+
+  // Escape closes dialog
+  useEffect(() => {
+    if (!dialog) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && !dialogBusy) setDialog(null);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [dialog, dialogBusy]);
 
   const owner = wallet?.address || '';
 
@@ -144,14 +174,29 @@ export default function DrivePage() {
     refresh();
   }
 
-  async function onNewFolder() {
-    if (!owner) return;
-    const name = prompt('Folder name', 'Album');
-    if (!name) return;
-    const folder = await createFolder(owner, name);
-    setFolderId(folder.id);
-    setStatus({ msg: `Folder “${folder.name}” created`, kind: 'ok' });
-    refresh();
+  function openNewFolder() {
+    setFolderName('Album');
+    setDialog({ type: 'folder' });
+  }
+
+  async function submitNewFolder() {
+    if (!owner || dialogBusy) return;
+    const name = folderName.trim() || 'Untitled folder';
+    setDialogBusy(true);
+    try {
+      const folder = await createFolder(owner, name);
+      setFolderId(folder.id);
+      setStatus({ msg: `Folder “${folder.name}” created`, kind: 'ok' });
+      setDialog(null);
+      refresh();
+    } catch (err) {
+      setStatus({
+        msg: 'Create folder failed: ' + (err instanceof Error ? err.message : String(err)),
+        kind: 'err',
+      });
+    } finally {
+      setDialogBusy(false);
+    }
   }
 
   async function onShareFolder() {
@@ -187,10 +232,31 @@ export default function DrivePage() {
     }
   }
 
-  async function onDelete(id: string) {
-    if (!confirm('Remove from your library? (blob stays on Shelby until expiry)')) return;
-    await removeFile(owner, id);
-    refresh();
+  function askDelete(id: string) {
+    const file = listAllFiles(owner).find((f) => f.id === id);
+    setDialog({
+      type: 'delete',
+      fileId: id,
+      name: file?.originalName || 'this file',
+    });
+  }
+
+  async function confirmDelete() {
+    if (!dialog || dialog.type !== 'delete' || dialogBusy) return;
+    setDialogBusy(true);
+    try {
+      await removeFile(owner, dialog.fileId);
+      setStatus({ msg: 'Removed from library', kind: 'ok' });
+      setDialog(null);
+      refresh();
+    } catch (err) {
+      setStatus({
+        msg: 'Delete failed: ' + (err instanceof Error ? err.message : String(err)),
+        kind: 'err',
+      });
+    } finally {
+      setDialogBusy(false);
+    }
   }
 
   async function onPreview(id: string) {
@@ -242,8 +308,7 @@ export default function DrivePage() {
     );
   }
 
-  const chip =
-    wallet.address.slice(0, 6) + '…' + wallet.address.slice(-4);
+  const chip = wallet.address.slice(0, 6) + '…' + wallet.address.slice(-4);
   const hasContent = files.length > 0 || (folderId === null && folders.length > 0);
 
   return (
@@ -259,7 +324,11 @@ export default function DrivePage() {
           <Link to="/" className="app-link">
             Home
           </Link>
-          <button type="button" className="app-link app-link-muted" onClick={() => void onDisconnect()}>
+          <button
+            type="button"
+            className="app-link app-link-muted"
+            onClick={() => void onDisconnect()}
+          >
             Disconnect
           </button>
         </div>
@@ -267,10 +336,14 @@ export default function DrivePage() {
 
       <main className="app-shell">
         <aside className="app-rail">
-          <button type="button" className="app-btn-ghost app-btn-block" onClick={() => void onNewFolder()}>
+          <button type="button" className="app-btn-ghost app-btn-block" onClick={openNewFolder}>
             New folder
           </button>
-          <button type="button" className="app-upload-cta" onClick={() => inputRef.current?.click()}>
+          <button
+            type="button"
+            className="app-upload-cta"
+            onClick={() => inputRef.current?.click()}
+          >
             Upload files
           </button>
           <nav className="app-rail-nav" aria-label="Library">
@@ -324,7 +397,11 @@ export default function DrivePage() {
             </div>
             <div className="app-stage-actions">
               {folderId ? (
-                <button type="button" className="app-btn-ghost" onClick={() => void onShareFolder()}>
+                <button
+                  type="button"
+                  className="app-btn-ghost"
+                  onClick={() => void onShareFolder()}
+                >
                   Share folder
                 </button>
               ) : null}
@@ -430,7 +507,7 @@ export default function DrivePage() {
                       <button
                         type="button"
                         className="app-btn-text app-btn-danger"
-                        onClick={() => void onDelete(f.id)}
+                        onClick={() => askDelete(f.id)}
                       >
                         Delete
                       </button>
@@ -471,6 +548,100 @@ export default function DrivePage() {
           }
         }}
       />
+
+      {/* In-app modal — no browser prompt/confirm */}
+      {dialog ? (
+        <div
+          className="app-modal-backdrop"
+          role="presentation"
+          onClick={() => {
+            if (!dialogBusy) setDialog(null);
+          }}
+        >
+          <div
+            className="app-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="app-modal-title"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {dialog.type === 'folder' ? (
+              <>
+                <h2 id="app-modal-title" className="app-modal-title">
+                  New folder
+                </h2>
+                <p className="app-modal-sub">Name your album or collection</p>
+                <label className="app-modal-label" htmlFor="folder-name-input">
+                  Folder name
+                </label>
+                <input
+                  id="folder-name-input"
+                  ref={folderInputRef}
+                  className="app-modal-input"
+                  type="text"
+                  value={folderName}
+                  maxLength={80}
+                  autoComplete="off"
+                  disabled={dialogBusy}
+                  onChange={(e) => setFolderName(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      void submitNewFolder();
+                    }
+                  }}
+                />
+                <div className="app-modal-actions">
+                  <button
+                    type="button"
+                    className="app-modal-btn app-modal-btn-ghost"
+                    disabled={dialogBusy}
+                    onClick={() => setDialog(null)}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    className="app-modal-btn app-modal-btn-primary"
+                    disabled={dialogBusy}
+                    onClick={() => void submitNewFolder()}
+                  >
+                    {dialogBusy ? 'Creating…' : 'Create'}
+                  </button>
+                </div>
+              </>
+            ) : (
+              <>
+                <h2 id="app-modal-title" className="app-modal-title">
+                  Remove file?
+                </h2>
+                <p className="app-modal-sub">
+                  <strong className="app-modal-em">{dialog.name}</strong> will leave your
+                  library index. The blob stays on Shelby until it expires.
+                </p>
+                <div className="app-modal-actions">
+                  <button
+                    type="button"
+                    className="app-modal-btn app-modal-btn-ghost"
+                    disabled={dialogBusy}
+                    onClick={() => setDialog(null)}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    className="app-modal-btn app-modal-btn-danger"
+                    disabled={dialogBusy}
+                    onClick={() => void confirmDelete()}
+                  >
+                    {dialogBusy ? 'Removing…' : 'Remove'}
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

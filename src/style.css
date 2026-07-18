@@ -1493,3 +1493,158 @@ html, body {
   color: var(--text-muted, #888);
 }
 .preview-error { color: #e8a0a0; }
+
+/* ── In-app modal (replaces browser prompt/confirm) ─────────────────────── */
+.app-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: grid;
+  place-items: center;
+  padding: 1.25rem;
+  background: rgba(0, 0, 0, 0.72);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  animation: app-modal-fade 0.16s ease both;
+}
+
+.app-modal {
+  width: min(100%, 22.5rem);
+  background: #121212;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 14px;
+  padding: 1.35rem 1.35rem 1.2rem;
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.55);
+  animation: app-modal-pop 0.18s cubic-bezier(0.2, 0.9, 0.3, 1) both;
+}
+
+.app-modal-title {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 500;
+  letter-spacing: -0.02em;
+  color: #f2f2f2;
+}
+
+.app-modal-sub {
+  margin: 0.4rem 0 0;
+  font-size: 0.8125rem;
+  line-height: 1.45;
+  color: #8a8a8a;
+}
+
+.app-modal-em {
+  color: #e8e8e8;
+  font-weight: 500;
+}
+
+.app-modal-label {
+  display: block;
+  margin: 1.15rem 0 0.4rem;
+  font-size: 0.6875rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #6e6e6e;
+}
+
+.app-modal-input {
+  width: 100%;
+  box-sizing: border-box;
+  appearance: none;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: #0a0a0a;
+  color: #f5f5f5;
+  border-radius: 10px;
+  padding: 0.75rem 0.9rem;
+  font-family: inherit;
+  font-size: 0.9375rem;
+  outline: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.app-modal-input:focus {
+  border-color: rgba(200, 200, 255, 0.35);
+  box-shadow: 0 0 0 3px rgba(180, 180, 255, 0.08);
+}
+
+.app-modal-input:disabled {
+  opacity: 0.55;
+}
+
+.app-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  margin-top: 1.25rem;
+}
+
+.app-modal-btn {
+  appearance: none;
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  border-radius: 999px;
+  padding: 0.55rem 1.05rem;
+  transition: opacity 0.15s ease, background 0.15s ease, border-color 0.15s ease;
+}
+
+.app-modal-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.app-modal-btn-ghost {
+  background: transparent;
+  color: #bdbdbd;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.app-modal-btn-ghost:hover:not(:disabled) {
+  border-color: rgba(255, 255, 255, 0.22);
+  color: #fff;
+}
+
+.app-modal-btn-primary {
+  background: #f0f0f0;
+  color: #0a0a0a;
+  border: 1px solid #f0f0f0;
+}
+
+.app-modal-btn-primary:hover:not(:disabled) {
+  opacity: 0.92;
+}
+
+.app-modal-btn-danger {
+  background: #3a1818;
+  color: #f0c4c4;
+  border: 1px solid #5a2828;
+}
+
+.app-modal-btn-danger:hover:not(:disabled) {
+  background: #4a1e1e;
+}
+
+@keyframes app-modal-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes app-modal-pop {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app-modal-backdrop,
+  .app-modal {
+    animation: none;
+  }
+}
