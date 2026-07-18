@@ -58,7 +58,7 @@ async function init() {
       btn.textContent = 'Connect wallet';
       if (hintEl && /not installed/i.test(msg)) {
         hintEl.innerHTML =
-          'Install <a href="https://petra.app/" target="_blank" rel="noopener">Petra</a> then retry';
+      'Install <a href="https://petra.app/" target="_blank" rel="noopener">Petra</a> (Wallet Standard) then retry';
       }
     }
   });
