@@ -10,7 +10,7 @@ import {
 import type { ShareFileItem, SharePayload } from '../../scripts/types';
 import MediaLightbox, {
   type MediaLightboxState,
-} from '../components/MediaLightbox';
+} from '../components/feature/media/MediaLightbox';
 
 function filesFromPayload(p: SharePayload): { title: string; files: ShareFileItem[] } {
   if (p.type === 'folder') {

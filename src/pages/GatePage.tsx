@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { connectWallet, getConnectedWallet, hasAppSession } from '../../scripts/aptos-client';
-import BrandLoader from '../components/BrandLoader';
+import BrandLoader from '../components/shared/BrandLoader';
 
 function sleep(ms: number) {
   return new Promise((r) => setTimeout(r, ms));

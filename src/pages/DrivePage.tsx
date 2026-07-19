@@ -40,16 +40,16 @@ import {
   clearVaultSession,
   openThumb,
 } from '../../scripts/vault';
-import BrandLoader from '../components/BrandLoader';
+import BrandLoader from '../components/shared/BrandLoader';
 import MediaLightbox, {
   type MediaLightboxState,
-} from '../components/MediaLightbox';
-import ShareSheet, { type ShareSheetState } from '../components/ShareSheet';
-import UploadQueuePanel, { type QueueJob } from '../components/UploadQueuePanel';
+} from '../components/feature/media/MediaLightbox';
+import ShareSheet, { type ShareSheetState } from '../components/feature/share/ShareSheet';
+import UploadQueuePanel, { type QueueJob } from '../components/feature/upload/UploadQueuePanel';
 import FilterMenu, {
   type FileKindFilter,
   type SortKey,
-} from '../components/FilterMenu';
+} from '../components/shared/FilterMenu';
 
 function formatSize(bytes: number): string {
   if (bytes < 1024) return bytes + ' B';
