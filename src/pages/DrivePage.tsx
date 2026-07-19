@@ -51,9 +51,6 @@ import FilterMenu, {
   type SortKey,
 } from '../components/FilterMenu';
 
-import { DriveLayout } from '../components';
-import { DriveHeader, DriveToolbar, DriveContent } from '../components/feature/drive';
-
 function formatSize(bytes: number): string {
   if (bytes < 1024) return bytes + ' B';
   if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
@@ -855,114 +852,7 @@ export default function DrivePage() {
         </aside>
 
         <section className="app-stage app-reveal app-reveal-3">
-          <DriveHeader
-            folderName={folderId ? currentFolder?.name : undefined}
-            onNewFolder={openNewFolder}
-            onUpload={() => inputRef.current?.click()}
-          />
-
-          <DriveToolbar
-            onRefresh={() => setTick(t => t + 1)}
-            onSearch={(q) => { /* nanti dihubungkan ke filterQuery */ }}
-          />
-
-          <DriveContent>
-            <div
-              className="app-dropzone"
-              onDragOver={(e) => { e.preventDefault(); setDrag(true); }}
-              onDragLeave={() => setDrag(false)}
-              onDrop={(e) => {
-                e.preventDefault();
-                setDrag(false);
-                if (e.dataTransfer.files?.length) void handleFiles(e.dataTransfer.files);
-              }}
-            >
-              <span className="app-drop-title">Drop files here</span>
-              <span className="app-drop-hint">
-                {folderId
-                  ? "Upload into this folder · multi-select ok"
-                  : "or click to browse · multi-select ok"}
-              </span>
-            </div>
-
-            {!folderId && folders.length > 0 ? (
-              <div className="drive-folder-grid">
-                {folders.map((f) => (
-                  <div key={f.id} className="drive-folder-card-wrap">
-                    <button
-                      type="button"
-                      className="drive-folder-card"
-                      onClick={() => setFolderId(f.id)}
-                    >
-                      <span className="drive-folder-icon">▢</span>
-                      <span className="drive-folder-name">{f.name}</span>
-                      <span className="drive-folder-meta">
-                        {countFilesInFolder(owner, f.id)} items
-                      </span>
-                    </button>
-                    <button
-                      type="button"
-                      className="drive-folder-delete"
-                      title={`Delete ${f.name}`}
-                      aria-label={`Delete folder ${f.name}`}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        askDeleteFolder(f.id);
-                      }}
-                    >
-                      Delete
-                    </button>
-                  </div>
-                ))}
-              </div>
-            ) : null}
-
-            {files.length > 0 ? (
-              <div
-                className={
-                  viewMode === "grid" ? "app-file-grid" : "app-file-list"
-                }
-              >
-                {files.map((f) => {
-                  const canPreview =
-                    isImageMime(f.mimeType, f.originalName) ||
-                    isVideoMime(f.mimeType, f.originalName);
-                  const thumb = thumbs.current.get(f.id);
-                  const video = isVideoMime(f.mimeType, f.originalName);
-                  return (
-                    <article
-                      key={f.id}
-                      className={
-                        viewMode === "grid" ? "app-file-card" : "app-file-row"
-                      }
-                    >
-                      <button
-                        type="button"
-                        className="app-file-thumb app-file-thumb-btn"
-                        onClick={() => {
-                          if (canPreview) void onPreview(f.id);
-                        }}
-                        disabled={!canPreview}
-                        title={canPreview ? "Preview" : undefined}
-                      >
-                        {thumb ? (
-                          <img src={thumb} alt="" />
-                        ) : (
-                          <span className="app-file-thumb-ph">
-                            {video ? "▶" : canPreview ? "…" : "FILE"}
-                          </span>
-                        )}
-                        {video ? <span className="app-file-badge">Video</span> : null}
-                      </button>
-                      {/* sisanya (nama, ukuran, action) tetap seperti semula */}
-                    </article>
-                  );
-                })}
-              </div>
-            ) : null}
-          </DriveContent>
-
-          {/* Legacy stage-head sudah tidak dipakai lagi */}
+          <div className="app-stage-head">
             <div>
               {folderId ? (
                 <button type="button" className="app-back" onClick={() => setFolderId(null)}>
