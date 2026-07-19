@@ -10,7 +10,26 @@ import { handleAddFile } from './handlers/addFile.js';
 
 const app = express();
 
-app.post('/api/library', express.json(), async (req, res) => {
+app.use(express.json({ limit: '12mb' }));
+
+// GET → dipakai hydrateLibrary (apiGet)
+app.get('/api/library', async (req, res) => {
+  try {
+    const ownerAddress = req.query.owner as string;
+    if (!ownerAddress) {
+      return res.status(400).json({ error: 'Missing owner' });
+    }
+    const result = await handleSync(ownerAddress);
+    return res.status(result.status).json(result.json);
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : 'Library API error';
+    console.error('library API GET:', err);
+    return res.status(500).json({ error: message, ...dbStatus() });
+  }
+});
+
+// POST → untuk createFolder, rename, delete, addFile, sync manual
+app.post('/api/library', async (req, res) => {
   try {
     const { op, ownerAddress, ...body } = req.body || {};
 
