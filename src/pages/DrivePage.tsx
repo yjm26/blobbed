@@ -5,7 +5,6 @@ import {
   getConnectedWallet,
   hasAppSession,
 } from '../../scripts/aptos-client';
-import { uploadFile } from '../../scripts/upload';
 import {
   createFolder,
   listFiles,
@@ -20,6 +19,9 @@ import {
   setLibraryAuthWallet,
   ensureLibrarySession,
   clearLibrarySession,
+  renameFile,
+  renameFolder,
+  moveFile,
 } from '../../scripts/library-store';
 import {
   generateFileShareLink,
@@ -36,9 +38,7 @@ import {
   ensureVaultUnlocked,
   migratePlainKeys,
   countKeyEncodings,
-  isVaultUnlocked,
   clearVaultSession,
-  openThumb,
 } from '../../scripts/vault';
 
 import { DriveLayout, DriveTopBar } from '../components/layout';
@@ -48,22 +48,29 @@ import {
   DriveFolderGrid,
   DriveFileList,
   DriveBootError,
+  DriveBootProgress,
+  DriveBulkBar,
+  type BootStepId,
 } from '../components/feature/drive';
-import BrandLoader from '../components/shared/BrandLoader';
 import TrustPanel from '../components/shared/TrustPanel';
 import MediaLightbox, {
   type MediaLightboxState,
 } from '../components/feature/media/MediaLightbox';
 import ShareSheet, { type ShareSheetState } from '../components/feature/share/ShareSheet';
-import UploadQueuePanel, { type QueueJob } from '../components/feature/upload/UploadQueuePanel';
+import UploadQueuePanel from '../components/feature/upload/UploadQueuePanel';
 import type { FileKindFilter, SortKey } from '../components/shared/FilterMenu';
+import { useQueue } from '../components/hooks/useQueue';
+import { useThumbs } from '../components/hooks/useThumbs';
+import { useDriveSelection } from '../components/hooks/useDriveSelection';
 
 type DialogState =
-  | { type: 'rename-file'; fileId: string; currentName: string }
   | null
   | { type: 'folder' }
   | { type: 'delete'; fileId: string; name: string }
-  | { type: 'delete-folder'; folderId: string; name: string; fileCount: number };
+  | { type: 'delete-folder'; folderId: string; name: string; fileCount: number }
+  | { type: 'rename-file'; fileId: string; currentName: string }
+  | { type: 'rename-folder'; folderId: string; currentName: string }
+  | { type: 'move-file'; fileId: string; name: string };
 
 export default function DrivePage() {
   const nav = useNavigate();
@@ -74,6 +81,10 @@ export default function DrivePage() {
   const [ready, setReady] = useState(false);
   const [loadingError, setLoadingError] = useState<string | null>(null);
   const [isRetrying, setIsRetrying] = useState(false);
+  const [bootStep, setBootStep] = useState<BootStepId>('vault');
+  const [bootDetail, setBootDetail] = useState('Approve Petra if prompted');
+  const [renameValue, setRenameValue] = useState('');
+  const [bulkBusy, setBulkBusy] = useState(false);
 
   const [folderId, setFolderId] = useState<string | null>(null);
   const [tick, setTick] = useState(0);
@@ -85,8 +96,6 @@ export default function DrivePage() {
   const [dialog, setDialog] = useState<DialogState>(null);
   const [folderName, setFolderName] = useState('Album');
   const [dialogBusy, setDialogBusy] = useState(false);
-  const thumbs = useRef(new Map<string, string>());
-  const [, setThumbTick] = useState(0);
   const [lightbox, setLightbox] = useState<MediaLightboxState | null>(null);
   const previewUrlRef = useRef<string | null>(null);
   const [vaultOk, setVaultOk] = useState(false);
@@ -115,10 +124,6 @@ export default function DrivePage() {
   const [filterOpen, setFilterOpen] = useState(false);
   const [filterQuery, setFilterQuery] = useState('');
   const [filterKind, setFilterKind] = useState<FileKindFilter>('all');
-  const [queue, setQueue] = useState<QueueJob[]>([]);
-  const [queueCollapsed, setQueueCollapsed] = useState(false);
-  const queueBusy = useRef(false);
-  const pumpQueueRef = useRef<(() => Promise<void>) | null>(null);
   const [shareSheet, setShareSheet] = useState<ShareSheetState | null>(null);
   const [lightboxAlbum, setLightboxAlbum] = useState<string[]>([]);
 
@@ -157,13 +162,19 @@ export default function DrivePage() {
         setLibraryAuthWallet(w);
 
         try {
+          setBootStep('vault');
+          setBootDetail('Sign 1 of 2 — derive vault key (memory only)');
           setStatus({ msg: 'Unlock vault. Check wallet…', kind: 'info' });
           await Promise.race([ensureVaultUnlocked(w), timeout(20000)]);
           setVaultOk(true);
 
+          setBootStep('session');
+          setBootDetail('Sign 2 of 2 — library session ticket (~2h)');
           setStatus({ msg: 'Library session. Check wallet…', kind: 'info' });
           await Promise.race([ensureLibrarySession(w), timeout(15000)]);
 
+          setBootStep('library');
+          setBootDetail('Fetching your encrypted index…');
           setStatus({ msg: 'Loading library…', kind: 'info' });
           await Promise.race([hydrateLibrary(w.address), timeout(15000)]);
 
@@ -322,190 +333,36 @@ export default function DrivePage() {
   const currentFolder =
     folderId && owner ? getFolder(owner, folderId) : undefined;
 
+  const {
+    queue,
+    queueCollapsed,
+    setQueueCollapsed,
+    enqueueFiles,
+    cancelQueueItem,
+    retryQueueItem,
+    dismissQueueItem,
+    clearDoneQueue,
+  } = useQueue({
+    wallet,
+    folderId,
+    onStatus: setStatus,
+    onUploaded: refresh,
+    onVaultOk: () => setVaultOk(true),
+    onKeyStats: setKeyStats,
+  });
+
+  const { thumbs } = useThumbs(wallet, files, tick);
+
+  const visibleIds = useMemo(() => files.map((f) => f.id), [files]);
+  const selection = useDriveSelection(visibleIds);
+
   useEffect(() => {
     if (!owner || !wallet) return;
     setKeyStats(countKeyEncodings(listAllFiles(owner)));
-
-    let cancelled = false;
-    (async () => {
-      for (const f of files) {
-        if (cancelled) return;
-        if (thumbs.current.has(f.id)) continue;
-        if (f.thumbDataUrl) {
-          try {
-            const url = await openThumb(f.thumbDataUrl, wallet);
-            if (cancelled) return;
-            if (url) {
-              thumbs.current.set(f.id, url);
-              setThumbTick((x) => x + 1);
-              continue;
-            }
-          } catch {
-            /* */
-          }
-        }
-        if (!isImageMime(f.mimeType, f.originalName)) continue;
-        try {
-          const item = await fileToShareItemAsync(f, wallet);
-          const url = await previewObjectUrl(item);
-          if (cancelled) return;
-          thumbs.current.set(f.id, url);
-          setThumbTick((x) => x + 1);
-        } catch {
-          /* */
-        }
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [files, owner, wallet, tick]);
-
-  function enqueueFiles(list: FileList | File[]) {
-    if (!wallet) return;
-    const arr = Array.from(list);
-    if (!arr.length) return;
-    const jobs: QueueJob[] = arr.map((file) => ({
-      id: crypto.randomUUID(),
-      name: file.name,
-      size: file.size,
-      status: 'queued' as const,
-      ratio: 0,
-      file,
-      folderId,
-    }));
-    setQueue((q) => [...q, ...jobs]);
-    setQueueCollapsed(false);
-    setStatus({
-      msg: `Queued ${jobs.length} file${jobs.length === 1 ? '' : 's'}`,
-      kind: 'info',
-    });
-    window.setTimeout(() => void pumpQueueRef.current?.(), 0);
-  }
-
-  const pumpQueue = useCallback(async () => {
-    if (!wallet || queueBusy.current) return;
-    const next = queue.find((j) => j.status === 'queued');
-    if (!next) return;
-
-    queueBusy.current = true;
-    const controller = new AbortController();
-    setQueue((q) =>
-      q.map((j) =>
-        j.id === next.id
-          ? { ...j, status: 'running', phase: 'Starting', ratio: 0.02, controller }
-          : j
-      )
-    );
-
-    try {
-      if (!isVaultUnlocked(wallet.address)) {
-        await ensureVaultUnlocked(wallet);
-        setVaultOk(true);
-      }
-      await uploadFile(next.file, wallet, next.folderId, {
-        signal: controller.signal,
-        onProgress: (p) => {
-          setQueue((q) =>
-            q.map((j) =>
-              j.id === next.id && j.status === 'running'
-                ? { ...j, phase: p.phase, ratio: p.ratio }
-                : j
-            )
-          );
-        },
-      });
-      setQueue((q) =>
-        q.map((j) =>
-          j.id === next.id
-            ? { ...j, status: 'done', phase: 'Done', ratio: 1, controller: undefined }
-            : j
-        )
-      );
-      setKeyStats(countKeyEncodings(listAllFiles(wallet.address)));
-      refresh();
-      setStatus({ msg: `Uploaded ${next.name}`, kind: 'ok' });
-    } catch (err) {
-      const aborted =
-        (err instanceof Error && err.name === 'AbortError') ||
-        (err instanceof Error && /cancel/i.test(err.message));
-      setQueue((q) =>
-        q.map((j) =>
-          j.id === next.id
-            ? {
-                ...j,
-                status: aborted ? 'cancelled' : 'error',
-                error: aborted
-                  ? undefined
-                  : err instanceof Error
-                    ? err.message
-                    : String(err),
-                controller: undefined,
-              }
-            : j
-        )
-      );
-      if (!aborted) {
-        setStatus({
-          msg:
-            'Upload failed: ' +
-            (err instanceof Error ? err.message : String(err)),
-          kind: 'err',
-        });
-      }
-    } finally {
-      queueBusy.current = false;
-      window.setTimeout(() => {
-        void pumpQueueRef.current?.();
-      }, 0);
-    }
-  }, [queue, wallet, refresh]);
-
-  pumpQueueRef.current = pumpQueue;
-
-  useEffect(() => {
-    if (queue.some((j) => j.status === 'queued') && !queueBusy.current) {
-      void pumpQueue();
-    }
-  }, [queue, pumpQueue]);
+  }, [owner, wallet, tick]);
 
   function handleFiles(list: FileList | File[]) {
     enqueueFiles(list);
-  }
-
-  function cancelQueueItem(id: string) {
-    setQueue((q) =>
-      q.map((j) => {
-        if (j.id !== id) return j;
-        try {
-          j.controller?.abort();
-        } catch {
-          /* */
-        }
-        if (j.status === 'queued' || j.status === 'running') {
-          return { ...j, status: 'cancelled' };
-        }
-        return j;
-      })
-    );
-  }
-
-  function retryQueueItem(id: string) {
-    setQueue((q) =>
-      q.map((j) =>
-        j.id === id
-          ? { ...j, status: 'queued', error: undefined, phase: undefined, ratio: 0 }
-          : j
-      )
-    );
-  }
-
-  function dismissQueueItem(id: string) {
-    setQueue((q) => q.filter((j) => j.id !== id));
-  }
-
-  function clearDoneQueue() {
-    setQueue((q) => q.filter((j) => j.status === 'queued' || j.status === 'running'));
   }
 
   function openNewFolder() {
@@ -605,6 +462,109 @@ export default function DrivePage() {
     });
   }
 
+  function askRenameFile(id: string) {
+    const file = listAllFiles(owner).find((f) => f.id === id);
+    if (!file) return;
+    setRenameValue(file.originalName || '');
+    setDialog({ type: 'rename-file', fileId: id, currentName: file.originalName || '' });
+  }
+
+  function askRenameFolder(id: string) {
+    const folder = getFolder(owner, id);
+    if (!folder) return;
+    setRenameValue(folder.name);
+    setDialog({ type: 'rename-folder', folderId: id, currentName: folder.name });
+  }
+
+  function askMoveFile(id: string) {
+    const file = listAllFiles(owner).find((f) => f.id === id);
+    if (!file) return;
+    setDialog({ type: 'move-file', fileId: id, name: file.originalName || 'file' });
+  }
+
+  async function submitRename() {
+    if (!dialog || dialogBusy || !owner) return;
+    const next = renameValue.trim();
+    if (!next) return;
+    setDialogBusy(true);
+    try {
+      if (dialog.type === 'rename-file') {
+        await renameFile(owner, dialog.fileId, next);
+        setStatus({ msg: 'File renamed', kind: 'ok' });
+      } else if (dialog.type === 'rename-folder') {
+        await renameFolder(owner, dialog.folderId, next);
+        setStatus({ msg: 'Folder renamed', kind: 'ok' });
+      }
+      setDialog(null);
+      refresh();
+    } catch (err) {
+      setStatus({
+        msg: 'Rename failed: ' + (err instanceof Error ? err.message : String(err)),
+        kind: 'err',
+      });
+    } finally {
+      setDialogBusy(false);
+    }
+  }
+
+  async function submitMoveFile(targetFolderId: string | null) {
+    if (!dialog || dialog.type !== 'move-file' || !owner) return;
+    setDialogBusy(true);
+    try {
+      await moveFile(owner, dialog.fileId, targetFolderId);
+      setStatus({ msg: 'File moved', kind: 'ok' });
+      setDialog(null);
+      refresh();
+    } catch (err) {
+      setStatus({
+        msg: 'Move failed: ' + (err instanceof Error ? err.message : String(err)),
+        kind: 'err',
+      });
+    } finally {
+      setDialogBusy(false);
+    }
+  }
+
+  async function bulkDelete() {
+    if (!owner || selection.count === 0) return;
+    setBulkBusy(true);
+    try {
+      for (const id of selection.selectedIds) {
+        await removeFile(owner, id);
+      }
+      setStatus({ msg: `Removed ${selection.count} file(s)`, kind: 'ok' });
+      selection.clear();
+      refresh();
+    } catch (err) {
+      setStatus({
+        msg: 'Bulk delete failed: ' + (err instanceof Error ? err.message : String(err)),
+        kind: 'err',
+      });
+    } finally {
+      setBulkBusy(false);
+    }
+  }
+
+  async function bulkMove(targetFolderId: string | null) {
+    if (!owner || selection.count === 0) return;
+    setBulkBusy(true);
+    try {
+      for (const id of selection.selectedIds) {
+        await moveFile(owner, id, targetFolderId);
+      }
+      setStatus({ msg: `Moved ${selection.count} file(s)`, kind: 'ok' });
+      selection.clear();
+      refresh();
+    } catch (err) {
+      setStatus({
+        msg: 'Bulk move failed: ' + (err instanceof Error ? err.message : String(err)),
+        kind: 'err',
+      });
+    } finally {
+      setBulkBusy(false);
+    }
+  }
+
   async function confirmDelete() {
     if (!dialog || dialogBusy) return;
 
@@ -674,7 +634,7 @@ export default function DrivePage() {
       ? 'video'
       : 'image';
 
-    const cached = thumbs.current.get(file.id);
+    const cached = thumbs.get(file.id);
     const isDataThumb = cached?.startsWith('data:');
     if (cached && kind === 'image' && !isDataThumb) {
       setLightbox({
@@ -716,8 +676,8 @@ export default function DrivePage() {
         );
       });
       if (kind === 'image') {
-        thumbs.current.set(file.id, url);
-        setThumbTick((t) => t + 1);
+        thumbs.set(file.id, url);
+        /* thumbs map updated */
       } else {
         if (previewUrlRef.current) {
           try {
@@ -839,12 +799,7 @@ export default function DrivePage() {
         />
       );
     }
-    return (
-      <BrandLoader
-        label="Syncing your library"
-        hint="Index + wallet key wrap"
-      />
-    );
+    return <DriveBootProgress activeId={bootStep} detail={bootDetail} />;
   }
 
   const hasContent =
@@ -932,16 +887,42 @@ export default function DrivePage() {
             countInFolder={(id) => countFilesInFolder(owner, id)}
             onOpen={setFolderId}
             onDelete={askDeleteFolder}
+            onRename={askRenameFolder}
           />
+        ) : null}
+
+        {files.length > 0 ? (
+          <div className="drive-select-row">
+            <button
+              type="button"
+              className="app-btn-text"
+              onClick={() => selection.selectAll()}
+            >
+              Select all
+            </button>
+            {selection.count > 0 ? (
+              <button
+                type="button"
+                className="app-btn-text"
+                onClick={() => selection.clear()}
+              >
+                Clear selection
+              </button>
+            ) : null}
+          </div>
         ) : null}
 
         <DriveFileList
           files={files}
           viewMode={viewMode}
-          thumbs={thumbs.current}
+          thumbs={thumbs}
+          selectedIds={selection.selected}
+          onToggleSelect={selection.toggle}
           onPreview={(id) => void onPreview(id)}
           onShare={(id) => void onShareFile(id)}
           onDelete={askDelete}
+          onRename={askRenameFile}
+          onMove={askMoveFile}
         />
 
         {hasContent &&
@@ -1071,92 +1052,79 @@ export default function DrivePage() {
                   }}
                 />
                 <div className="app-modal-actions">
-                  <button
-                    type="button"
-                    className="app-modal-btn app-modal-btn-ghost"
-                    disabled={dialogBusy}
-                    onClick={() => setDialog(null)}
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="button"
-                    className="app-modal-btn app-modal-btn-primary"
-                    disabled={dialogBusy}
-                    onClick={() => void submitNewFolder()}
-                  >
-                    {dialogBusy ? 'Creating…' : 'Create'}
-                  </button>
+                  <button type="button" className="app-modal-btn app-modal-btn-ghost" disabled={dialogBusy} onClick={() => setDialog(null)}>Cancel</button>
+                  <button type="button" className="app-modal-btn app-modal-btn-primary" disabled={dialogBusy} onClick={() => void submitNewFolder()}>{dialogBusy ? 'Creating…' : 'Create'}</button>
+                </div>
+              </>
+            ) : dialog.type === 'rename-file' || dialog.type === 'rename-folder' ? (
+              <>
+                <h2 id="app-modal-title" className="app-modal-title">
+                  {dialog.type === 'rename-file' ? 'Rename file' : 'Rename folder'}
+                </h2>
+                <label className="app-modal-label" htmlFor="rename-input">Name</label>
+                <input
+                  id="rename-input"
+                  className="app-modal-input"
+                  type="text"
+                  value={renameValue}
+                  maxLength={120}
+                  autoComplete="off"
+                  disabled={dialogBusy}
+                  onChange={(e) => setRenameValue(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      void submitRename();
+                    }
+                  }}
+                />
+                <div className="app-modal-actions">
+                  <button type="button" className="app-modal-btn app-modal-btn-ghost" disabled={dialogBusy} onClick={() => setDialog(null)}>Cancel</button>
+                  <button type="button" className="app-modal-btn app-modal-btn-primary" disabled={dialogBusy || !renameValue.trim()} onClick={() => void submitRename()}>{dialogBusy ? 'Saving…' : 'Save'}</button>
+                </div>
+              </>
+            ) : dialog.type === 'move-file' ? (
+              <>
+                <h2 id="app-modal-title" className="app-modal-title">Move file</h2>
+                <p className="app-modal-sub">
+                  Move <strong className="app-modal-em">{dialog.name}</strong> to…
+                </p>
+                <div className="app-modal-actions" style={{ flexDirection: 'column', alignItems: 'stretch' }}>
+                  <button type="button" className="app-modal-btn app-modal-btn-ghost" disabled={dialogBusy} onClick={() => void submitMoveFile(null)}>All files (root)</button>
+                  {folders.map((f) => (
+                    <button key={f.id} type="button" className="app-modal-btn app-modal-btn-ghost" disabled={dialogBusy} onClick={() => void submitMoveFile(f.id)}>{f.name}</button>
+                  ))}
+                  <button type="button" className="app-modal-btn app-modal-btn-ghost" disabled={dialogBusy} onClick={() => setDialog(null)}>Cancel</button>
                 </div>
               </>
             ) : dialog.type === 'delete-folder' ? (
               <>
-                <h2 id="app-modal-title" className="app-modal-title">
-                  Delete folder?
-                </h2>
+                <h2 id="app-modal-title" className="app-modal-title">Delete folder?</h2>
                 <p className="app-modal-sub">
-                  <strong className="app-modal-em">{dialog.name}</strong> will be
-                  removed.
+                  <strong className="app-modal-em">{dialog.name}</strong> will be removed.
                   {dialog.fileCount > 0 ? (
-                    <>
-                      {' '}
-                      Its {dialog.fileCount} file
-                      {dialog.fileCount === 1 ? '' : 's'} move to{' '}
-                      <strong className="app-modal-em">All files</strong> (not
-                      deleted from Shelby).
-                    </>
+                    <> Its {dialog.fileCount} file{dialog.fileCount === 1 ? '' : 's'} move to <strong className="app-modal-em">All files</strong>.</>
                   ) : (
                     <> It&apos;s empty.</>
                   )}
                 </p>
                 <div className="app-modal-actions">
-                  <button
-                    type="button"
-                    className="app-modal-btn app-modal-btn-ghost"
-                    disabled={dialogBusy}
-                    onClick={() => setDialog(null)}
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="button"
-                    className="app-modal-btn app-modal-btn-danger"
-                    disabled={dialogBusy}
-                    onClick={() => void confirmDelete()}
-                  >
-                    {dialogBusy ? 'Deleting…' : 'Delete folder'}
-                  </button>
+                  <button type="button" className="app-modal-btn app-modal-btn-ghost" disabled={dialogBusy} onClick={() => setDialog(null)}>Cancel</button>
+                  <button type="button" className="app-modal-btn app-modal-btn-danger" disabled={dialogBusy} onClick={() => void confirmDelete()}>{dialogBusy ? 'Deleting…' : 'Delete folder'}</button>
                 </div>
               </>
-            ) : (
+            ) : dialog.type === 'delete' ? (
               <>
-                <h2 id="app-modal-title" className="app-modal-title">
-                  Remove file?
-                </h2>
+                <h2 id="app-modal-title" className="app-modal-title">Remove file?</h2>
                 <p className="app-modal-sub">
-                  <strong className="app-modal-em">{dialog.name}</strong> will leave
-                  your library index. The blob stays on Shelby until it expires.
+                  <strong className="app-modal-em">{dialog.name}</strong> will leave your library index. The blob stays on Shelby until it expires.
                 </p>
                 <div className="app-modal-actions">
-                  <button
-                    type="button"
-                    className="app-modal-btn app-modal-btn-ghost"
-                    disabled={dialogBusy}
-                    onClick={() => setDialog(null)}
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="button"
-                    className="app-modal-btn app-modal-btn-danger"
-                    disabled={dialogBusy}
-                    onClick={() => void confirmDelete()}
-                  >
-                    {dialogBusy ? 'Removing…' : 'Remove'}
-                  </button>
+                  <button type="button" className="app-modal-btn app-modal-btn-ghost" disabled={dialogBusy} onClick={() => setDialog(null)}>Cancel</button>
+                  <button type="button" className="app-modal-btn app-modal-btn-danger" disabled={dialogBusy} onClick={() => void confirmDelete()}>{dialogBusy ? 'Removing…' : 'Remove'}</button>
                 </div>
               </>
-            )}
+            ) : null}
           </div>
         </div>
       ) : null}
@@ -1172,6 +1140,15 @@ export default function DrivePage() {
         }
       />
       <ShareSheet state={shareSheet} onClose={() => setShareSheet(null)} />
+      <DriveBulkBar
+        count={selection.count}
+        folders={folders.map((f) => ({ id: f.id, name: f.name }))}
+        onClear={() => selection.clear()}
+        onDelete={() => void bulkDelete()}
+        onMove={(fid) => void bulkMove(fid)}
+        busy={bulkBusy}
+      />
+
       <UploadQueuePanel
         items={queue}
         collapsed={queueCollapsed}

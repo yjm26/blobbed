@@ -7,6 +7,7 @@ import { handleRenameFolder } from './handlers/renameFolder.js';
 import { handleDeleteFile } from './handlers/deleteFile.js';
 import { handleDeleteFolder } from './handlers/deleteFolder.js';
 import { handleAddFile } from './handlers/addFile.js';
+import { handleMoveFile } from './handlers/moveFile.js';
 import { publicError } from './lib/http-error.js';
 
 const app = express();
@@ -73,11 +74,15 @@ app.post('/api/library', async (req, res) => {
         result = await handleAddFile(body, ownerAddress);
         break;
 
+      case 'moveFile':
+        result = await handleMoveFile(body, ownerAddress);
+        break;
+
       default:
         return res.status(400).json({
           error: 'Unknown op',
           code: 'BAD_REQUEST',
-          hint: 'session | sync | getLibrary | createFolder | renameFolder | renameFile | deleteFile | deleteFolder | addFile',
+          hint: 'session | sync | getLibrary | createFolder | renameFolder | renameFile | deleteFile | deleteFolder | addFile | moveFile',
         });
     }
 

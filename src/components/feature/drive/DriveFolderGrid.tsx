@@ -6,14 +6,16 @@ export type DriveFolderGridProps = {
   countInFolder: (id: string) => number;
   onOpen: (id: string) => void;
   onDelete: (id: string) => void;
+  onRename?: (id: string) => void;
 };
 
-/** Folder cards — square mark (▢), not emoji. Matches legacy theme. */
+/** Folder cards — square mark (▢), not emoji. */
 export default function DriveFolderGrid({
   folders,
   countInFolder,
   onOpen,
   onDelete,
+  onRename,
 }: DriveFolderGridProps) {
   if (!folders.length) return null;
 
@@ -32,18 +34,33 @@ export default function DriveFolderGrid({
               {countInFolder(f.id)} items
             </span>
           </button>
-          <button
-            type="button"
-            className="drive-folder-delete"
-            title={`Delete ${f.name}`}
-            aria-label={`Delete folder ${f.name}`}
-            onClick={(e) => {
-              e.stopPropagation();
-              onDelete(f.id);
-            }}
-          >
-            Delete
-          </button>
+          <div className="drive-folder-card-actions">
+            {onRename ? (
+              <button
+                type="button"
+                className="drive-folder-delete"
+                title={`Rename ${f.name}`}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onRename(f.id);
+                }}
+              >
+                Rename
+              </button>
+            ) : null}
+            <button
+              type="button"
+              className="drive-folder-delete"
+              title={`Delete ${f.name}`}
+              aria-label={`Delete folder ${f.name}`}
+              onClick={(e) => {
+                e.stopPropagation();
+                onDelete(f.id);
+              }}
+            >
+              Delete
+            </button>
+          </div>
         </div>
       ))}
     </div>

@@ -2038,6 +2038,206 @@ html, body {
   font-size: 0.9rem;
 }
 
+/* Boot steps */
+.boot-steps {
+  list-style: none;
+  margin: 1.25rem 0 0;
+  padding: 0;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.boot-step {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  font-size: 0.8125rem;
+  color: rgba(255, 255, 255, 0.38);
+  letter-spacing: 0.02em;
+}
+
+.boot-step.is-active {
+  color: rgba(255, 255, 255, 0.92);
+}
+
+.boot-step.is-done {
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.boot-step-mark {
+  width: 1.35rem;
+  height: 1.35rem;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  display: grid;
+  place-items: center;
+  font-size: 0.625rem;
+  flex-shrink: 0;
+}
+
+.boot-step.is-active .boot-step-mark {
+  border-color: rgba(255, 255, 255, 0.7);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.boot-step.is-done .boot-step-mark {
+  border-color: rgba(120, 200, 140, 0.45);
+  color: rgba(160, 220, 170, 0.95);
+}
+
+/* Bulk bar */
+.drive-bulk-bar {
+  position: fixed;
+  left: 50%;
+  bottom: 1.25rem;
+  transform: translateX(-50%);
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+  justify-content: center;
+  padding: 0.65rem 0.85rem;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(12, 12, 14, 0.92);
+  backdrop-filter: blur(12px);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.45);
+  max-width: calc(100vw - 1.5rem);
+}
+
+.drive-bulk-count {
+  font-size: 0.75rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.7);
+  padding-left: 0.35rem;
+}
+
+.drive-bulk-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+}
+
+.drive-bulk-select {
+  appearance: none;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  color: #f2f2f2;
+  border-radius: 999px;
+  padding: 0.45rem 0.85rem;
+  font: inherit;
+  font-size: 0.8125rem;
+  cursor: pointer;
+  max-width: 11rem;
+}
+
+.drive-bulk-bar .app-modal-btn {
+  padding: 0.45rem 0.9rem;
+  font-size: 0.75rem;
+  border-radius: 999px;
+}
+
+.app-file-check {
+  position: absolute;
+  top: 0.45rem;
+  left: 0.45rem;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  width: 1.25rem;
+  height: 1.25rem;
+}
+
+.app-file-card,
+.app-file-row {
+  position: relative;
+}
+
+.app-file-card.is-selected,
+.app-file-row.is-selected {
+  outline: 1px solid rgba(255, 255, 255, 0.35);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.app-file-thumb-ph--pulse:empty::after {
+  content: '';
+  display: block;
+  width: 40%;
+  height: 40%;
+  margin: auto;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.12);
+  animation: thumb-pulse 1.1s ease-in-out infinite;
+}
+
+@keyframes thumb-pulse {
+  0%, 100% { opacity: 0.35; }
+  50% { opacity: 0.85; }
+}
+
+.drive-folder-card-actions {
+  display: flex;
+  gap: 0.35rem;
+  justify-content: flex-end;
+  padding: 0 0.15rem;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Sticky top + mobile rail */
+.app-page--drive .app-top {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  background: rgba(7, 7, 7, 0.92);
+  backdrop-filter: blur(10px);
+}
+
+@media (max-width: 800px) {
+  .app-folder-nav {
+    flex-direction: row;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    gap: 0.35rem;
+    max-width: 100%;
+    padding-bottom: 0.15rem;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .app-folder-nav .app-rail-item {
+    flex: 0 0 auto;
+    white-space: nowrap;
+    padding: 0.45rem 0.65rem;
+    min-height: 2.25rem;
+  }
+
+  .app-rail-item {
+    min-height: 2.25rem;
+  }
+
+  .drive-bulk-bar {
+    bottom: 0.75rem;
+    border-radius: 1rem;
+    width: calc(100vw - 1rem);
+  }
+}
+
+
 @keyframes brand-spin {
   to { transform: rotate(360deg); }
 }
@@ -2920,4 +3120,11 @@ html, body {
 .app-toolbar {
   position: relative;
   z-index: 5;
+}
+
+.drive-select-row {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+  margin: 0.35rem 0 0.75rem;
 }

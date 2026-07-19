@@ -14,18 +14,26 @@ export type DriveFileListProps = {
   files: FileMetadata[];
   viewMode: 'list' | 'grid';
   thumbs: Map<string, string>;
+  selectedIds?: Set<string>;
+  onToggleSelect?: (id: string) => void;
   onPreview: (id: string) => void;
   onShare: (id: string) => void;
   onDelete: (id: string) => void;
+  onRename?: (id: string) => void;
+  onMove?: (id: string) => void;
 };
 
 export default function DriveFileList({
   files,
   viewMode,
   thumbs,
+  selectedIds,
+  onToggleSelect,
   onPreview,
   onShare,
   onDelete,
+  onRename,
+  onMove,
 }: DriveFileListProps) {
   if (!files.length) return null;
 
@@ -38,12 +46,28 @@ export default function DriveFileList({
           isImageMime(mime, name) || isVideoMime(mime, name);
         const thumb = thumbs.get(f.id);
         const video = isVideoMime(mime, name);
+        const checked = selectedIds?.has(f.id) ?? false;
 
         return (
           <article
             key={f.id}
-            className={viewMode === 'grid' ? 'app-file-card' : 'app-file-row'}
+            className={[
+              viewMode === 'grid' ? 'app-file-card' : 'app-file-row',
+              checked ? 'is-selected' : '',
+            ]
+              .filter(Boolean)
+              .join(' ')}
           >
+            {onToggleSelect ? (
+              <label className="app-file-check">
+                <input
+                  type="checkbox"
+                  checked={checked}
+                  onChange={() => onToggleSelect(f.id)}
+                  aria-label={`Select ${name}`}
+                />
+              </label>
+            ) : null}
             <button
               type="button"
               className="app-file-thumb app-file-thumb-btn"
@@ -56,8 +80,8 @@ export default function DriveFileList({
               {thumb ? (
                 <img src={thumb} alt="" />
               ) : (
-                <span className="app-file-thumb-ph">
-                  {video ? '▶' : canPreview ? '…' : 'FILE'}
+                <span className="app-file-thumb-ph app-file-thumb-ph--pulse">
+                  {video ? '▶' : canPreview ? '' : 'FILE'}
                 </span>
               )}
               {video ? <span className="app-file-badge">Video</span> : null}
@@ -79,6 +103,24 @@ export default function DriveFileList({
                   onClick={() => onPreview(f.id)}
                 >
                   {video ? 'Play' : 'Preview'}
+                </button>
+              ) : null}
+              {onRename ? (
+                <button
+                  type="button"
+                  className="app-btn-text"
+                  onClick={() => onRename(f.id)}
+                >
+                  Rename
+                </button>
+              ) : null}
+              {onMove ? (
+                <button
+                  type="button"
+                  className="app-btn-text"
+                  onClick={() => onMove(f.id)}
+                >
+                  Move
                 </button>
               ) : null}
               <button

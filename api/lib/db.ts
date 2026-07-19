@@ -519,3 +519,30 @@ export async function renameFile(
   `;
   return (rows as unknown[]).length > 0;
 }
+
+/** Move file into folder (null = root / All files). */
+export async function moveFile(
+  ownerAddress: string,
+  fileId: string,
+  folderId: string | null
+): Promise<boolean> {
+  const owner = normOwner(ownerAddress);
+
+  if (!isDatabaseConfigured()) {
+    const f = mem.files.find(
+      (x) => x.id === fileId && normOwner(x.ownerAddress) === owner
+    );
+    if (!f) return false;
+    f.folderId = folderId;
+    return true;
+  }
+
+  await ensureSchema();
+  const sql = getSql();
+  const rows = await sql`
+    UPDATE files SET folder_id = ${folderId || null}::uuid
+    WHERE id = ${fileId}::uuid AND lower(owner_address) = ${owner}
+    RETURNING id
+  `;
+  return (rows as unknown[]).length > 0;
+}

@@ -388,3 +388,24 @@ export async function renameFile(ownerAddress: string, fileId: string, newName: 
   if (f) f.originalName = newName.trim();
   writeLocal(ownerAddress, lib);
 }
+
+/** Move file into folder (null = All files / root). */
+export async function moveFile(
+  ownerAddress: string,
+  fileId: string,
+  folderId: string | null
+): Promise<void> {
+  await apiPost({
+    op: 'moveFile',
+    ownerAddress,
+    fileId,
+    folderId,
+  });
+
+  const lib = getCached(ownerAddress);
+  const f = lib.files.find((x) => x.id === fileId);
+  if (f) {
+    f.folderId = folderId;
+    writeLocal(ownerAddress, lib);
+  }
+}
