@@ -11,7 +11,6 @@ import {
  */
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   res.setHeader('Cache-Control', 'no-store');
-  res.setHeader('Access-Control-Allow-Origin', '*');
 
   if (req.method !== 'GET') {
     return res.status(405).json({ error: 'Method not allowed' });
@@ -74,6 +73,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       csp: true,
       plainThumbsRejected: true,
       legacyMutationsLocked: true,
+      libraryReadAuth: true,
+      corsStrict: true,
+      originsConfigured: Boolean(process.env.CORS_ORIGINS?.trim()),
     },
     checks: {
       neon: db.backend === 'neon',

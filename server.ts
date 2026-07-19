@@ -1,6 +1,10 @@
 import express from 'express';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import {
+  parseCorsAllowlist,
+  resolveAllowedOrigin,
+} from './api/lib/cors.ts';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -12,12 +16,29 @@ const PORT = process.env.PORT || 3000;
 app.use(express.json({ limit: '12mb' }));
 app.use(express.urlencoded({ extended: true, limit: '12mb' }));
 
-// CORS
+// CORS allowlist (no *)
 app.use((req, res, next) => {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-  if (req.method === 'OPTIONS') return res.sendStatus(200);
+  const allowlist = parseCorsAllowlist();
+  const origin = resolveAllowedOrigin(
+    typeof req.headers.origin === 'string' ? req.headers.origin : undefined,
+    allowlist,
+    typeof req.headers.host === 'string' ? req.headers.host : undefined
+  );
+  if (origin) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+    res.setHeader('Vary', 'Origin');
+    res.setHeader(
+      'Access-Control-Allow-Methods',
+      'GET,POST,PUT,DELETE,OPTIONS'
+    );
+    res.setHeader(
+      'Access-Control-Allow-Headers',
+      'Content-Type, Authorization'
+    );
+  }
+  if (req.method === 'OPTIONS') {
+    return res.sendStatus(origin ? 204 : 403);
+  }
   next();
 });
 
@@ -56,5 +77,5 @@ app.use((req, res) => {
 });
 
 app.listen(PORT, () => {
-  console.log(`✅ Blobbed 1-Stack running on port ${PORT}`);
+  console.log(`Blobbed running on port ${PORT}`);
 });

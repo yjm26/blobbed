@@ -1,52 +1,60 @@
-import type { VercelRequest, VercelResponse } from '@vercel/node';
 import express from 'express';
-import { dbStatus } from './lib/db.js';
 import { handleSync } from './handlers/sync.js';
+import { handleSession } from './handlers/session.js';
 import { handleCreateFolder } from './handlers/createFolder.js';
 import { handleRenameFile } from './handlers/renameFile.js';
+import { handleRenameFolder } from './handlers/renameFolder.js';
 import { handleDeleteFile } from './handlers/deleteFile.js';
 import { handleDeleteFolder } from './handlers/deleteFolder.js';
 import { handleAddFile } from './handlers/addFile.js';
+import { publicError } from './lib/http-error.js';
 
 const app = express();
 
 app.use(express.json({ limit: '12mb' }));
 
-// GET → dipakai hydrateLibrary (apiGet)
-app.get('/api/library', async (req, res) => {
-  try {
-    const ownerAddress = req.query.owner as string;
-    if (!ownerAddress) {
-      return res.status(400).json({ error: 'Missing owner' });
-    }
-    const result = await handleSync(ownerAddress);
-    return res.status(result.status).json(result.json);
-  } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : 'Library API error';
-    console.error('library API GET:', err);
-    return res.status(500).json({ error: message, ...dbStatus() });
-  }
+/** GET unauth meta disabled — use POST + session/auth */
+app.get('/api/library', (_req, res) => {
+  return res.status(410).json({
+    error: 'GET library disabled',
+    code: 'USE_POST_LIBRARY',
+    hint: 'POST /api/library with op session|sync and sessionToken or auth',
+  });
 });
 
-// POST → untuk createFolder, rename, delete, addFile, sync manual
 app.post('/api/library', async (req, res) => {
   try {
-    const { op, ownerAddress, ...body } = req.body || {};
+    const raw = (req.body || {}) as Record<string, unknown>;
+    const op = raw.op;
+    const ownerAddress = String(
+      raw.ownerAddress || raw.address || ''
+    );
 
-    if (!op) {
-      return res.status(400).json({ error: 'Missing op' });
+    if (!op || typeof op !== 'string') {
+      return res.status(400).json({ error: 'Missing op', code: 'BAD_REQUEST' });
     }
 
-    let result;
+    // body without op for handlers (keep owner fields too — handlers read both)
+    const body = { ...raw };
+
+    let result: { status: number; json: Record<string, unknown> | object };
 
     switch (op) {
+      case 'session':
+        result = await handleSession(body, ownerAddress);
+        break;
+
       case 'sync':
       case 'getLibrary':
-        result = await handleSync(ownerAddress || body.address);
+        result = await handleSync(body, ownerAddress);
         break;
 
       case 'createFolder':
         result = await handleCreateFolder(body, ownerAddress);
+        break;
+
+      case 'renameFolder':
+        result = await handleRenameFolder(body, ownerAddress);
         break;
 
       case 'renameFile':
@@ -68,15 +76,15 @@ app.post('/api/library', async (req, res) => {
       default:
         return res.status(400).json({
           error: 'Unknown op',
-          hint: 'sync | createFolder | renameFile | deleteFile | addFile',
+          code: 'BAD_REQUEST',
+          hint: 'session | sync | getLibrary | createFolder | renameFolder | renameFile | deleteFile | deleteFolder | addFile',
         });
     }
 
     return res.status(result.status).json(result.json);
   } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : 'Library API error';
-    console.error('library API:', err);
-    return res.status(500).json({ error: message, ...dbStatus() });
+    const body = publicError(err, 'Library API error');
+    return res.status(500).json(body);
   }
 });
 

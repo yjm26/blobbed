@@ -74,10 +74,32 @@ function getCached(ownerAddress: string): LibrarySnapshot {
 
 async function apiGet(ownerAddress: string): Promise<LibrarySnapshot | null> {
   try {
-    const res = await fetch(
-      `/api/library?owner=${encodeURIComponent(ownerAddress)}`,
-      { cache: 'no-store' }
-    );
+    const payload: Record<string, unknown> = {
+      op: 'sync',
+      ownerAddress,
+    };
+    if (librarySession?.token && librarySession.exp > Date.now()) {
+      payload.sessionToken = librarySession.token;
+    } else if (authWallet) {
+      try {
+        await ensureLibrarySession(authWallet);
+        if (librarySession?.token) {
+          payload.sessionToken = librarySession.token;
+        }
+      } catch {
+        /* will 401 without token */
+      }
+    }
+
+    const res = await fetch(`/api/library`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    if (res.status === 401) {
+      librarySession = null;
+      return null;
+    }
     if (!res.ok) return null;
     const data = await res.json();
     if (data.backend === 'neon' || data.backend === 'memory') {

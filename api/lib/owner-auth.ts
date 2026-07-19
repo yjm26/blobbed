@@ -224,12 +224,33 @@ export function verifyOwnerAuth(
   return { ok: true, address };
 }
 
-function sessionSecret(): string {
+export function isProductionEnv(): boolean {
   return (
+    process.env.NODE_ENV === 'production' ||
+    process.env.RENDER === 'true' ||
+    process.env.BLOBED_ENV === 'production'
+  );
+}
+
+/**
+ * HMAC session secret. Production refuses insecure fallback.
+ */
+export function getSessionSecret(): string {
+  const s =
     process.env.LIBRARY_SESSION_SECRET?.trim() ||
     process.env.APTOS_PRIVATE_KEY?.trim() ||
-    'blobbed-dev-insecure-session'
-  );
+    '';
+  if (s) return s;
+  if (isProductionEnv()) {
+    throw new Error(
+      'LIBRARY_SESSION_SECRET required in production (refusing insecure fallback)'
+    );
+  }
+  return 'blobbed-dev-insecure-session';
+}
+
+function sessionSecret(): string {
+  return getSessionSecret();
 }
 
 /** HMAC session ticket so library writes need 1 wallet sign / 2h, not per op. */

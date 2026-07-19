@@ -148,11 +148,6 @@ export default function DrivePage() {
       setLibraryAuthWallet(w);
       setStatus({ msg: 'Syncing library…', kind: 'info' });
 
-      await Promise.race([
-        hydrateLibrary(w.address),
-        timeout(15000)
-      ]);
-
       try {
         setStatus({ msg: 'Unlock vault. Check wallet…', kind: 'info' });
         await Promise.race([
@@ -167,23 +162,41 @@ export default function DrivePage() {
           timeout(15000)
         ]);
 
+        // hydrate AFTER session — sync requires sessionToken
+        setStatus({ msg: 'Loading library…', kind: 'info' });
+        await Promise.race([
+          hydrateLibrary(w.address),
+          timeout(15000)
+        ]);
+
         const mig = await migratePlainKeys(w);
         if (mig.migrated > 0 || mig.thumbs > 0) {
           setStatus({ msg: `Secured ${mig.migrated} key(s)`, kind: 'ok' });
         }
-      } catch (err) {
+      } catch (err: unknown) {
         setVaultOk(false);
-        setLoadingError('Failed to unlock vault or library session. Please check Petra popup and try again.');
+        const msg = err instanceof Error ? err.message : '';
+        if (/session|sign|auth|rejected/i.test(msg)) {
+          setLoadingError(
+            'Vault or library session failed. Check Petra popup, then Retry.'
+          );
+        } else if (msg === 'Timeout') {
+          setLoadingError('Unlock/session timed out. Check Petra and try again.');
+        } else {
+          setLoadingError(
+            'Failed to unlock vault or library session. Check Petra popup and try again.'
+          );
+        }
         return;
       }
 
       setStatus({ msg: 'Library synced', kind: 'ok' });
       setTimeout(() => setStatus(null), 1500);
       setReady(true);
-    } catch (err: any) {
-      console.error('Sync error:', err);
-      if (err.message === 'Timeout') {
-        setLoadingError('Sync timeout. Please check your wallet connection and try again.');
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : '';
+      if (msg === 'Timeout') {
+        setLoadingError('Sync timeout. Check wallet connection and try again.');
       } else {
         setLoadingError('Failed to sync library. Please try again.');
       }
@@ -221,8 +234,8 @@ export default function DrivePage() {
     for (const file of Array.from(fileList)) {
       try {
         await uploadFile(file, folderId || undefined);
-      } catch (e) {
-        console.error(e);
+      } catch (e: unknown) {
+        /* upload failed — surface via status if needed */
       }
     }
     refresh();
@@ -251,8 +264,11 @@ export default function DrivePage() {
       setDialog(null);
       setFolderName('Album');
       refresh();
-    } catch (e) {
-      console.error(e);
+    } catch (e: unknown) {
+      setStatus({
+        msg: e instanceof Error ? e.message.slice(0, 80) : 'Folder create failed',
+        kind: 'err',
+      });
     } finally {
       setDialogBusy(false);
     }

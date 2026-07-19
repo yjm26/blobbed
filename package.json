@@ -7,8 +7,8 @@
     "build": "vite build",
     "preview": "vite preview",
     "start": "tsx server.ts",
-    "test": "vitest run tests/crypto.test.ts tests/key-wrap.test.ts",
-    "test:watch": "vitest tests/crypto.test.ts tests/key-wrap.test.ts",
+    "test": "vitest run tests/crypto.test.ts tests/key-wrap.test.ts tests/security-auth.test.ts",
+    "test:watch": "vitest tests/crypto.test.ts tests/key-wrap.test.ts tests/security-auth.test.ts",
     "test:e2e": "playwright test",
     "wallet:service": "node scripts/generate-service-wallet.mjs"
   },
