@@ -4,6 +4,9 @@ import { dbStatus } from './lib/db.js';
 import { handleSync } from './handlers/sync.js';
 import { handleCreateFolder } from './handlers/createFolder.js';
 import { handleRenameFile } from './handlers/renameFile.js';
+import { handleDeleteFile } from './handlers/deleteFile.js';
+import { handleDeleteFolder } from './handlers/deleteFolder.js';
+import { handleAddFile } from './handlers/addFile.js';
 
 const app = express();
 
@@ -29,6 +32,18 @@ app.post('/api/library', express.json(), async (req, res) => {
 
       case 'renameFile':
         result = await handleRenameFile(body, ownerAddress);
+        break;
+
+      case 'deleteFile':
+        result = await handleDeleteFile(body, ownerAddress);
+        break;
+
+      case 'deleteFolder':
+        result = await handleDeleteFolder(body, ownerAddress);
+        break;
+
+      case 'addFile':
+        result = await handleAddFile(body, ownerAddress);
         break;
 
       default:
