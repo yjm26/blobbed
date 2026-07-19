@@ -1,8 +1,8 @@
 import { useRef, useState, useCallback } from 'react';
-import type { FileMetadata } from '../../scripts/types';
-import { openThumb } from '../../scripts/vault';
-import { fileToShareItemAsync } from '../../scripts/share';
-import { isImageMime } from '../../scripts/preview';
+import type { FileMetadata } from '../../../scripts/types';
+import { openThumb } from '../../../scripts/vault';
+import { fileToShareItemAsync } from '../../../scripts/share';
+import { isImageMime } from '../../../scripts/preview';
 
 export function useThumbs(wallet: { address: string; publicKey: string } | null) {
   const thumbs = useRef(new Map<string, string>());
@@ -19,19 +19,11 @@ export function useThumbs(wallet: { address: string; publicKey: string } | null)
           setThumbTick((x) => x + 1);
           return;
         }
-      } catch {}
-    }
-
-    if (!isImageMime(file.mimeType, file.originalName)) return;
-
-    try {
-      const item = await fileToShareItemAsync(file, wallet);
-      if (item?.dataUrl) {
-        thumbs.current.set(file.id, item.dataUrl);
-        setThumbTick((x) => x + 1);
+      } catch (e) {
+        console.error(e);
       }
-    } catch {}
+    }
   }, [wallet]);
 
-  return { thumbs, loadThumb, setThumbTick };
+  return { thumbs: thumbs.current, loadThumb };
 }
