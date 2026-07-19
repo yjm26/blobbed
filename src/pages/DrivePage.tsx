@@ -123,13 +123,21 @@ export default function DrivePage() {
     if (isRetry) setIsRetrying(true);
     setLoadingError(null);
 
+    const timeout = (ms: number) => new Promise((_, reject) =>
+      setTimeout(() => reject(new Error('Timeout')), ms)
+    );
+
     try {
       if (!hasAppSession()) {
         nav('/gate', { replace: true });
         return;
       }
 
-      const w = await getConnectedWallet();
+      const w = await Promise.race([
+        getConnectedWallet(),
+        timeout(8000)
+      ]);
+
       if (!w?.address) {
         await disconnectWallet().catch(() => {});
         nav('/gate', { replace: true });
@@ -140,15 +148,24 @@ export default function DrivePage() {
       setLibraryAuthWallet(w);
       setStatus({ msg: 'Syncing library…', kind: 'info' });
 
-      await hydrateLibrary(w.address);
+      await Promise.race([
+        hydrateLibrary(w.address),
+        timeout(15000)
+      ]);
 
       try {
         setStatus({ msg: 'Unlock vault. Check wallet…', kind: 'info' });
-        await ensureVaultUnlocked(w);
+        await Promise.race([
+          ensureVaultUnlocked(w),
+          timeout(20000)
+        ]);
         setVaultOk(true);
 
         setStatus({ msg: 'Library session. Check wallet…', kind: 'info' });
-        await ensureLibrarySession(w);
+        await Promise.race([
+          ensureLibrarySession(w),
+          timeout(15000)
+        ]);
 
         const mig = await migratePlainKeys(w);
         if (mig.migrated > 0 || mig.thumbs > 0) {
@@ -156,16 +173,20 @@ export default function DrivePage() {
         }
       } catch (err) {
         setVaultOk(false);
-        setLoadingError('Failed to unlock vault or library session. Please try again.');
+        setLoadingError('Failed to unlock vault or library session. Please check Petra popup and try again.');
         return;
       }
 
       setStatus({ msg: 'Library synced', kind: 'ok' });
       setTimeout(() => setStatus(null), 1500);
       setReady(true);
-    } catch (err) {
+    } catch (err: any) {
       console.error('Sync error:', err);
-      setLoadingError('Failed to sync library. Please try again.');
+      if (err.message === 'Timeout') {
+        setLoadingError('Sync timeout. Please check your wallet connection and try again.');
+      } else {
+        setLoadingError('Failed to sync library. Please try again.');
+      }
     } finally {
       setIsRetrying(false);
     }
