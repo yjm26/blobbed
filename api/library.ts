@@ -189,21 +189,181 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
 
       if (op === 'deleteFile') {
+      if (op === 'renameFile') {
         const fileId = body.fileId || body.id;
-        if (!fileId) return res.status(400).json({ error: 'Missing fileId' });
+        const newName = body.newName || body.name;
+        if (!fileId || !newName) return res.status(400).json({ error: 'Missing fileId or newName' });
         const gate = requireAuth(body, ownerAddress, op, String(fileId));
         if (!gate.ok) return res.status(gate.status).json(gate.json);
+        const ok = await renameFile(gate.address, String(fileId), String(newName));
+        if (!ok) return res.status(404).json({ error: 'File not found' });
+        return res.status(200).json({ success: true, ...dbStatus() });
+      }
+        const fileId = body.fileId || body.id;
+      if (op === 'renameFile') {
+        const fileId = body.fileId || body.id;
+        const newName = body.newName || body.name;
+        if (!fileId || !newName) return res.status(400).json({ error: 'Missing fileId or newName' });
+        const gate = requireAuth(body, ownerAddress, op, String(fileId));
+        if (!gate.ok) return res.status(gate.status).json(gate.json);
+        const ok = await renameFile(gate.address, String(fileId), String(newName));
+        if (!ok) return res.status(404).json({ error: 'File not found' });
+        return res.status(200).json({ success: true, ...dbStatus() });
+      }
+        if (!fileId) return res.status(400).json({ error: 'Missing fileId' });
+      if (op === 'renameFile') {
+        const fileId = body.fileId || body.id;
+        const newName = body.newName || body.name;
+        if (!fileId || !newName) return res.status(400).json({ error: 'Missing fileId or newName' });
+        const gate = requireAuth(body, ownerAddress, op, String(fileId));
+        if (!gate.ok) return res.status(gate.status).json(gate.json);
+        const ok = await renameFile(gate.address, String(fileId), String(newName));
+        if (!ok) return res.status(404).json({ error: 'File not found' });
+        return res.status(200).json({ success: true, ...dbStatus() });
+      }
+        const gate = requireAuth(body, ownerAddress, op, String(fileId));
+      if (op === 'renameFile') {
+        const fileId = body.fileId || body.id;
+        const newName = body.newName || body.name;
+        if (!fileId || !newName) return res.status(400).json({ error: 'Missing fileId or newName' });
+        const gate = requireAuth(body, ownerAddress, op, String(fileId));
+        if (!gate.ok) return res.status(gate.status).json(gate.json);
+        const ok = await renameFile(gate.address, String(fileId), String(newName));
+        if (!ok) return res.status(404).json({ error: 'File not found' });
+        return res.status(200).json({ success: true, ...dbStatus() });
+      }
+        if (!gate.ok) return res.status(gate.status).json(gate.json);
+      if (op === 'renameFile') {
+        const fileId = body.fileId || body.id;
+        const newName = body.newName || body.name;
+        if (!fileId || !newName) return res.status(400).json({ error: 'Missing fileId or newName' });
+        const gate = requireAuth(body, ownerAddress, op, String(fileId));
+        if (!gate.ok) return res.status(gate.status).json(gate.json);
+        const ok = await renameFile(gate.address, String(fileId), String(newName));
+        if (!ok) return res.status(404).json({ error: 'File not found' });
+        return res.status(200).json({ success: true, ...dbStatus() });
+      }
         const ok = await deleteFile(gate.address, String(fileId));
+      if (op === 'renameFile') {
+        const fileId = body.fileId || body.id;
+        const newName = body.newName || body.name;
+        if (!fileId || !newName) return res.status(400).json({ error: 'Missing fileId or newName' });
+        const gate = requireAuth(body, ownerAddress, op, String(fileId));
+        if (!gate.ok) return res.status(gate.status).json(gate.json);
+        const ok = await renameFile(gate.address, String(fileId), String(newName));
+        if (!ok) return res.status(404).json({ error: 'File not found' });
+        return res.status(200).json({ success: true, ...dbStatus() });
+      }
+        if (!ok) return res.status(404).json({ error: 'File not found' });
+      if (op === 'renameFile') {
+        const fileId = body.fileId || body.id;
+        const newName = body.newName || body.name;
+        if (!fileId || !newName) return res.status(400).json({ error: 'Missing fileId or newName' });
+        const gate = requireAuth(body, ownerAddress, op, String(fileId));
+        if (!gate.ok) return res.status(gate.status).json(gate.json);
+        const ok = await renameFile(gate.address, String(fileId), String(newName));
+        if (!ok) return res.status(404).json({ error: 'File not found' });
+        return res.status(200).json({ success: true, ...dbStatus() });
+      }
+        return res.status(200).json({ success: true, ...dbStatus() });
+      if (op === 'renameFile') {
+        const fileId = body.fileId || body.id;
+        const newName = body.newName || body.name;
+        if (!fileId || !newName) return res.status(400).json({ error: 'Missing fileId or newName' });
+        const gate = requireAuth(body, ownerAddress, op, String(fileId));
+        if (!gate.ok) return res.status(gate.status).json(gate.json);
+        const ok = await renameFile(gate.address, String(fileId), String(newName));
+        if (!ok) return res.status(404).json({ error: 'File not found' });
+        return res.status(200).json({ success: true, ...dbStatus() });
+      }
+      }
+      if (op === 'renameFile') {
+        const fileId = body.fileId || body.id;
+        const newName = body.newName || body.name;
+        if (!fileId || !newName) return res.status(400).json({ error: 'Missing fileId or newName' });
+        const gate = requireAuth(body, ownerAddress, op, String(fileId));
+        if (!gate.ok) return res.status(gate.status).json(gate.json);
+        const ok = await renameFile(gate.address, String(fileId), String(newName));
         if (!ok) return res.status(404).json({ error: 'File not found' });
         return res.status(200).json({ success: true, ...dbStatus() });
       }
 
+      if (op === 'renameFile') {
+        const fileId = body.fileId || body.id;
+        const newName = body.newName || body.name;
+        if (!fileId || !newName) return res.status(400).json({ error: 'Missing fileId or newName' });
+        const gate = requireAuth(body, ownerAddress, op, String(fileId));
+        if (!gate.ok) return res.status(gate.status).json(gate.json);
+        const ok = await renameFile(gate.address, String(fileId), String(newName));
+        if (!ok) return res.status(404).json({ error: 'File not found' });
+        return res.status(200).json({ success: true, ...dbStatus() });
+      }
       return res.status(400).json({
+      if (op === 'renameFile') {
+        const fileId = body.fileId || body.id;
+        const newName = body.newName || body.name;
+        if (!fileId || !newName) return res.status(400).json({ error: 'Missing fileId or newName' });
+        const gate = requireAuth(body, ownerAddress, op, String(fileId));
+        if (!gate.ok) return res.status(gate.status).json(gate.json);
+        const ok = await renameFile(gate.address, String(fileId), String(newName));
+        if (!ok) return res.status(404).json({ error: 'File not found' });
+        return res.status(200).json({ success: true, ...dbStatus() });
+      }
         error: 'Unknown op',
+      if (op === 'renameFile') {
+        const fileId = body.fileId || body.id;
+        const newName = body.newName || body.name;
+        if (!fileId || !newName) return res.status(400).json({ error: 'Missing fileId or newName' });
+        const gate = requireAuth(body, ownerAddress, op, String(fileId));
+        if (!gate.ok) return res.status(gate.status).json(gate.json);
+        const ok = await renameFile(gate.address, String(fileId), String(newName));
+        if (!ok) return res.status(404).json({ error: 'File not found' });
+        return res.status(200).json({ success: true, ...dbStatus() });
+      }
         hint: 'sync | createFolder | renameFolder | deleteFolder | addFile | deleteFile',
+      if (op === 'renameFile') {
+        const fileId = body.fileId || body.id;
+        const newName = body.newName || body.name;
+        if (!fileId || !newName) return res.status(400).json({ error: 'Missing fileId or newName' });
+        const gate = requireAuth(body, ownerAddress, op, String(fileId));
+        if (!gate.ok) return res.status(gate.status).json(gate.json);
+        const ok = await renameFile(gate.address, String(fileId), String(newName));
+        if (!ok) return res.status(404).json({ error: 'File not found' });
+        return res.status(200).json({ success: true, ...dbStatus() });
+      }
       });
+      if (op === 'renameFile') {
+        const fileId = body.fileId || body.id;
+        const newName = body.newName || body.name;
+        if (!fileId || !newName) return res.status(400).json({ error: 'Missing fileId or newName' });
+        const gate = requireAuth(body, ownerAddress, op, String(fileId));
+        if (!gate.ok) return res.status(gate.status).json(gate.json);
+        const ok = await renameFile(gate.address, String(fileId), String(newName));
+        if (!ok) return res.status(404).json({ error: 'File not found' });
+        return res.status(200).json({ success: true, ...dbStatus() });
+      }
     }
+      if (op === 'renameFile') {
+        const fileId = body.fileId || body.id;
+        const newName = body.newName || body.name;
+        if (!fileId || !newName) return res.status(400).json({ error: 'Missing fileId or newName' });
+        const gate = requireAuth(body, ownerAddress, op, String(fileId));
+        if (!gate.ok) return res.status(gate.status).json(gate.json);
+        const ok = await renameFile(gate.address, String(fileId), String(newName));
+        if (!ok) return res.status(404).json({ error: 'File not found' });
+        return res.status(200).json({ success: true, ...dbStatus() });
+      }
 
+      if (op === 'renameFile') {
+        const fileId = body.fileId || body.id;
+        const newName = body.newName || body.name;
+        if (!fileId || !newName) return res.status(400).json({ error: 'Missing fileId or newName' });
+        const gate = requireAuth(body, ownerAddress, op, String(fileId));
+        if (!gate.ok) return res.status(gate.status).json(gate.json);
+        const ok = await renameFile(gate.address, String(fileId), String(newName));
+        if (!ok) return res.status(404).json({ error: 'File not found' });
+        return res.status(200).json({ success: true, ...dbStatus() });
+      }
     return res.status(405).json({ error: 'Method not allowed' });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : 'Library API error';

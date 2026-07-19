@@ -491,3 +491,31 @@ export function dbStatus(): { configured: boolean; backend: 'neon' | 'memory' } 
     backend: isDatabaseConfigured() ? 'neon' : 'memory',
   };
 }
+
+export async function renameFile(
+  ownerAddress: string,
+  fileId: string,
+  newName: string
+): Promise<boolean> {
+  const owner = normOwner(ownerAddress);
+  const next = newName.trim();
+  if (!next) return false;
+
+  if (!isDatabaseConfigured()) {
+    const f = mem.files.find(
+      (x) => x.id === fileId && normOwner(x.ownerAddress) === owner
+    );
+    if (!f) return false;
+    f.originalName = next;
+    return true;
+  }
+
+  await ensureSchema();
+  const sql = getSql();
+  const rows = await sql`
+    UPDATE files SET original_name = ${next}
+    WHERE id = ${fileId}::uuid AND lower(owner_address) = ${owner}
+    RETURNING id
+  `;
+  return (rows as unknown[]).length > 0;
+}

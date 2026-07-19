@@ -352,3 +352,17 @@ export function countFilesInFolder(ownerAddress: string, folderId: string): numb
 export function listAllFiles(ownerAddress: string): FileMetadata[] {
   return loadLibrary(ownerAddress).files;
 }
+
+export async function renameFile(ownerAddress: string, fileId: string, newName: string): Promise<void> {
+  await apiPost({
+    op: 'renameFile',
+    ownerAddress,
+    fileId,
+    newName,
+  });
+
+  const lib = getCached(ownerAddress);
+  const f = lib.files.find((x) => x.id === fileId);
+  if (f) f.originalName = newName.trim();
+  writeLocal(ownerAddress, lib);
+}

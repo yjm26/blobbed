@@ -59,6 +59,7 @@ function formatSize(bytes: number): string {
 }
 
 type DialogState =
+  | { type: 'rename-file'; fileId: string; currentName: string }
   | null
   | { type: 'folder' }
   | { type: 'delete'; fileId: string; name: string }
