@@ -1,0 +1,19 @@
+import { createFolder, dbStatus } from '../lib/db.js';
+import { verifyLibraryAccess } from '../lib/owner-auth.js';
+
+export async function handleCreateFolder(body: any, ownerAddress: string) {
+  const name = body.name || 'Untitled';
+  const address = ownerAddress || body.address;
+
+  if (!address) {
+    return { status: 400, json: { error: 'Missing ownerAddress' } };
+  }
+
+  const verified = verifyLibraryAccess(body, address, 'createFolder', name);
+  if (!verified.ok) {
+    return { status: 401, json: { error: verified.error, code: verified.code } };
+  }
+
+  const folder = createFolder(verified.address, name);
+  return { status: 200, json: { folder, ...dbStatus() } };
+}
