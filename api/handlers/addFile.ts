@@ -27,6 +27,8 @@ export async function handleAddFile(body: any, ownerAddress: string) {
     sizeBytes: Number(file.sizeBytes ?? 0),
     mimeType: String(file.mimeType || 'application/octet-stream'),
     thumbDataUrl: thumb,
+    encryptedKey: '',
+    createdAt: new Date().toISOString(),
   });
 
   return { status: 200, json: { file: saved, ...dbStatus() } };
