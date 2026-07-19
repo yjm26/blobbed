@@ -70,6 +70,9 @@ export default function DrivePage() {
 
   const [wallet, setWallet] = useState<{ address: string; publicKey: string } | null>(null);
   const [ready, setReady] = useState(false);
+  const [loadingError, setLoadingError] = useState<string | null>(null);
+  const [isRetrying, setIsRetrying] = useState(false);
+
   const [folderId, setFolderId] = useState<string | null>(null);
   const [tick, setTick] = useState(0);
   const [status, setStatus] = useState<{ msg: string; kind: 'info' | 'err' | 'ok' } | null>(null);
@@ -102,7 +105,6 @@ export default function DrivePage() {
   const [filterQuery, setFilterQuery] = useState('');
   const [filterOpen, setFilterOpen] = useState(false);
 
-  // Data state
   const [files, setFiles] = useState<FileMetadata[]>([]);
   const [folders, setFolders] = useState<FolderMetadata[]>([]);
   const [currentFolder, setCurrentFolder] = useState<FolderMetadata | null>(null);
@@ -117,7 +119,62 @@ export default function DrivePage() {
 
   const refresh = useCallback(() => setTick(t => t + 1), []);
 
-  // Load data
+  const syncWalletAndLibrary = useCallback(async (isRetry = false) => {
+    if (isRetry) setIsRetrying(true);
+    setLoadingError(null);
+
+    try {
+      if (!hasAppSession()) {
+        nav('/gate', { replace: true });
+        return;
+      }
+
+      const w = await getConnectedWallet();
+      if (!w?.address) {
+        await disconnectWallet().catch(() => {});
+        nav('/gate', { replace: true });
+        return;
+      }
+
+      setWallet(w);
+      setLibraryAuthWallet(w);
+      setStatus({ msg: 'Syncing library…', kind: 'info' });
+
+      await hydrateLibrary(w.address);
+
+      try {
+        setStatus({ msg: 'Unlock vault. Check wallet…', kind: 'info' });
+        await ensureVaultUnlocked(w);
+        setVaultOk(true);
+
+        setStatus({ msg: 'Library session. Check wallet…', kind: 'info' });
+        await ensureLibrarySession(w);
+
+        const mig = await migratePlainKeys(w);
+        if (mig.migrated > 0 || mig.thumbs > 0) {
+          setStatus({ msg: `Secured ${mig.migrated} key(s)`, kind: 'ok' });
+        }
+      } catch (err) {
+        setVaultOk(false);
+        setLoadingError('Failed to unlock vault or library session. Please try again.');
+        return;
+      }
+
+      setStatus({ msg: 'Library synced', kind: 'ok' });
+      setTimeout(() => setStatus(null), 1500);
+      setReady(true);
+    } catch (err) {
+      console.error('Sync error:', err);
+      setLoadingError('Failed to sync library. Please try again.');
+    } finally {
+      setIsRetrying(false);
+    }
+  }, [nav]);
+
+  useEffect(() => {
+    syncWalletAndLibrary();
+  }, [syncWalletAndLibrary]);
+
   useEffect(() => {
     if (!wallet) return;
 
@@ -127,25 +184,20 @@ export default function DrivePage() {
 
       if (folderId) {
         const f = getFolder(owner, folderId);
-        setCurrentFolder(f);
-        const folderFiles = listFiles(owner, folderId);
-        setFiles(folderFiles);
+        setCurrentFolder(f || null);
+        setFiles(listFiles(owner, folderId));
       } else {
         setCurrentFolder(null);
-        const rootFiles = listFiles(owner, null);
-        setFiles(rootFiles);
+        setFiles(listFiles(owner, null));
       }
     };
 
     loadData();
   }, [wallet, folderId, tick, owner]);
 
-  // === HANDLERS ===
-
   const handleFiles = useCallback(async (fileList: FileList) => {
     if (!wallet) return;
-    const arr = Array.from(fileList);
-    for (const file of arr) {
+    for (const file of Array.from(fileList)) {
       try {
         await uploadFile(file, folderId || undefined);
       } catch (e) {
@@ -160,16 +212,6 @@ export default function DrivePage() {
     nav('/gate', { replace: true });
   };
 
-  const onUnlockVault = async () => {
-    if (!wallet) return;
-    try {
-      await ensureVaultUnlocked(wallet);
-      setVaultOk(true);
-    } catch (e) {
-      setVaultOk(false);
-    }
-  };
-
   const setView = (mode: 'list' | 'grid') => {
     setViewMode(mode);
     try { localStorage.setItem('blobbed_view', mode); } catch {}
@@ -180,7 +222,6 @@ export default function DrivePage() {
     try { localStorage.setItem('blobbed_sort', s); } catch {}
   };
 
-  // Create folder
   const handleCreateFolder = async () => {
     if (!wallet || !folderName.trim()) return;
     setDialogBusy(true);
@@ -196,17 +237,32 @@ export default function DrivePage() {
     }
   };
 
-  // Delete handlers
   const askDeleteFile = (fileId: string, name: string) => {
     setDialog({ type: 'delete', fileId, name });
   };
 
-  const askDeleteFolder = (fid: string, name: string) => {
-    const count = countFilesInFolder(owner, fid);
-    setDialog({ type: 'delete-folder', folderId: fid, name, fileCount: count });
+  const retrySync = () => {
+    syncWalletAndLibrary(true);
   };
 
   if (!ready || !wallet) {
+    if (loadingError) {
+      return (
+        <div className="flex flex-col items-center justify-center min-h-screen bg-black text-white gap-4">
+          <div className="text-red-400 text-center px-4">{loadingError}</div>
+          <button
+            onClick={retrySync}
+            disabled={isRetrying}
+            className="px-6 py-2 bg-white text-black rounded hover:bg-gray-200 disabled:opacity-50"
+          >
+            {isRetrying ? 'Retrying...' : 'Retry'}
+          </button>
+          <button onClick={onDisconnect} className="text-sm text-white/60 hover:text-white">
+            Disconnect
+          </button>
+        </div>
+      );
+    }
     return <BrandLoader label="Syncing your library" />;
   }
 
@@ -298,7 +354,6 @@ export default function DrivePage() {
         )}
       </DriveContent>
 
-      {/* Dialog New Folder */}
       {dialog?.type === 'folder' && (
         <div className="modal">
           <div className="modal-content">
