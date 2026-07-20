@@ -1051,6 +1051,15 @@ export default function DrivePage() {
               folderCount={folders.length}
               vaultOk={vaultOk}
               backend={backend}
+              folders={folders.map((f) => ({ id: f.id, name: f.name }))}
+              onPreview={(id) => void onPreview(id)}
+              onShare={(id) => void onShareFile(id)}
+              onRename={askRenameFile}
+              onMove={askMoveFile}
+              onDelete={askDelete}
+              onBulkDelete={() => void bulkDelete()}
+              onBulkMove={(fid) => void bulkMove(fid)}
+              onClearSelection={() => selection.clear()}
             />
           </div>
         </div>

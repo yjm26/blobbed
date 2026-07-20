@@ -499,6 +499,44 @@ describe('Tailwind migration guardrails', () => {
     expect(details).toContain('Selected files');
     expect(details).toContain('Encryption active');
     expect(details).toContain('Blobs on Shelby');
-    expect(details).toContain('formatFileSize');
   });
+
+  it('makes the desktop details panel actionable for selected files', () => {
+    const page = read('src/pages/DrivePage.tsx');
+    const details = read('src/components/feature/drive/DriveDetailsPanel.tsx');
+
+    for (const copy of [
+      'Preview',
+      'Share link',
+      'Rename',
+      'Move',
+      'Remove',
+      'Move selected',
+      'Delete selected',
+      'Clear selection',
+    ]) {
+      expect(details).toContain(copy);
+    }
+
+    expect(details).toContain('onPreview');
+    expect(details).toContain('onShare');
+    expect(details).toContain('onRename');
+    expect(details).toContain('onMove');
+    expect(details).toContain('onDelete');
+    expect(details).toContain('onBulkMove');
+    expect(details).toContain('onBulkDelete');
+    expect(details).toContain('onClearSelection');
+    expect(details).toContain('isImageMime');
+    expect(details).toContain('isVideoMime');
+
+    expect(page).toContain('onPreview={(id) => void onPreview(id)}');
+    expect(page).toContain('onShare={(id) => void onShareFile(id)}');
+    expect(page).toContain('onRename={askRenameFile}');
+    expect(page).toContain('onMove={askMoveFile}');
+    expect(page).toContain('onDelete={askDelete}');
+    expect(page).toContain('onBulkDelete={() => void bulkDelete()}');
+    expect(page).toContain('onBulkMove={(fid) => void bulkMove(fid)}');
+    expect(page).toContain('onClearSelection={() => selection.clear()}');
+  });
+
 });
