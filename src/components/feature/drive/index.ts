@@ -4,6 +4,7 @@ export { default as DriveBreadcrumb } from './DriveBreadcrumb';
 export { default as DriveSectionHeader } from './DriveSectionHeader';
 export { default as FilesToolbar } from './FilesToolbar';
 export { default as DriveDropzone } from './DriveDropzone';
+export { default as DriveDetailsPanel } from './DriveDetailsPanel';
 export { default as DriveFolderGrid } from './DriveFolderGrid';
 export { default as DriveFileList } from './DriveFileList';
 export { default as DriveEmptyState } from './DriveEmptyState';

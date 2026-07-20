@@ -481,4 +481,24 @@ describe('Tailwind migration guardrails', () => {
     expect(page).toContain('{shouldShowDropzone ? (');
     expect(page).not.toContain('<DriveDropzone\n          compact={files.length > 0}');
   });
+
+  it('uses a desktop details panel instead of leaving Drive whitespace empty', () => {
+    const page = read('src/pages/DrivePage.tsx');
+    const index = read('src/components/feature/drive/index.ts');
+
+    expect(existsSync(join(root, 'src/components/feature/drive/DriveDetailsPanel.tsx'))).toBe(true);
+    const details = read('src/components/feature/drive/DriveDetailsPanel.tsx');
+
+    expect(index).toContain('DriveDetailsPanel');
+    expect(page).toContain('DriveDetailsPanel');
+    expect(page).toContain('const selectedFiles');
+    expect(page).toContain('const totalBytes');
+    expect(page).toContain('hidden xl:block');
+    expect(details).toContain('Security');
+    expect(details).toContain('Storage');
+    expect(details).toContain('Selected files');
+    expect(details).toContain('Encryption active');
+    expect(details).toContain('Blobs on Shelby');
+    expect(details).toContain('formatFileSize');
+  });
 });

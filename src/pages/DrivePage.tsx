@@ -53,6 +53,7 @@ import {
   DriveEmptyState,
   DriveSectionHeader,
   FilesToolbar,
+  DriveDetailsPanel,
   type BootStepId,
 } from '../components/feature/drive';
 import TrustPanel from '../components/shared/TrustPanel';
@@ -413,6 +414,18 @@ export default function DrivePage() {
 
   const visibleIds = useMemo(() => files.map((f) => f.id), [files]);
   const selection = useDriveSelection(visibleIds);
+  const selectedFiles = useMemo(
+    () => files.filter((file) => selection.selected.has(file.id)),
+    [files, selection.selected]
+  );
+  const allFiles = useMemo(() => {
+    void tick;
+    return owner ? listAllFiles(owner) : [];
+  }, [owner, tick]);
+  const totalBytes = useMemo(
+    () => allFiles.reduce((sum, file) => sum + (file.sizeBytes || 0), 0),
+    [allFiles]
+  );
 
   useEffect(() => {
     if (!owner || !wallet) return;
@@ -906,7 +919,9 @@ export default function DrivePage() {
         countInFolder={(id) => countFilesInFolder(owner, id)}
         railFoot={railFoot}
       >
-        <DriveHeader
+        <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_18.5rem] xl:items-start">
+          <div className="min-w-0 space-y-5">
+            <DriveHeader
           folderName={folderId ? currentFolder?.name || 'Folder' : null}
           onBackToLibrary={() => setFolderId(null)}
           fileCount={files.length}
@@ -1026,6 +1041,19 @@ export default function DrivePage() {
             {status.msg}
           </div>
         ) : null}
+          </div>
+
+          <div className="hidden xl:block">
+            <DriveDetailsPanel
+              files={allFiles}
+              selectedFiles={selectedFiles}
+              totalBytes={totalBytes}
+              folderCount={folders.length}
+              vaultOk={vaultOk}
+              backend={backend}
+            />
+          </div>
+        </div>
       </DriveLayout>
 
       <input
