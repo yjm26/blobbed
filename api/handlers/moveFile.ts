@@ -43,7 +43,14 @@ export async function handleMoveFile(
     };
   }
 
-  const ok = await moveFile(verified.address, String(fileId), folderId);
+  const ok = await moveFile(
+    verified.address,
+    String(fileId),
+    folderId,
+    typeof body.folderWrappedKey === 'string' && body.folderWrappedKey.startsWith('fk1.')
+      ? body.folderWrappedKey
+      : null
+  );
   if (!ok) {
     return {
       status: 404,

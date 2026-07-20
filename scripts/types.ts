@@ -22,6 +22,8 @@ export interface FileMetadata {
   encFormat?: 'legacy' | 'chunked';
   /** Phase C: small JPEG data URL for grid */
   thumbDataUrl?: string;
+  /** Live folder share: DEK wrapped with folder FK (`fk1.…`) */
+  folderWrappedKey?: string;
 }
 
 export interface FolderMetadata {
@@ -29,6 +31,8 @@ export interface FolderMetadata {
   ownerAddress: string;
   name: string;
   createdAt: string;
+  /** Live folder share: FK wrapped with owner vault (`bw1.…`) */
+  folderKeyWrapped?: string;
 }
 
 export interface LibrarySnapshot {

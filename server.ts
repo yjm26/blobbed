@@ -61,6 +61,9 @@ app.all('/api/folders', async (req, res) => await foldersHandler(req as any, res
 import sharesHandler from './api/shares.ts';
 app.all('/api/shares', async (req, res) => await sharesHandler(req as any, res as any));
 
+import publicShareHandler from './api/share/[id].ts';
+app.all('/api/share/:id', async (req, res) => await publicShareHandler(req as any, res as any));
+
 // Serve static files
 app.use(express.static(path.join(__dirname, 'dist'), {
   maxAge: '1y',

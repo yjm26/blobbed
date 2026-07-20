@@ -11,6 +11,13 @@ function sanitizeEncryptedKey(k: unknown): string {
   return s;
 }
 
+function sanitizeFolderWrappedKey(k: unknown): string | undefined {
+  if (k == null || k === '') return undefined;
+  const s = String(k);
+  if (s.length > 8192) return undefined;
+  return s.startsWith('fk1.') ? s : undefined;
+}
+
 export async function handleAddFile(
   body: Record<string, unknown>,
   ownerAddress: string
@@ -55,6 +62,7 @@ export async function handleAddFile(
     mimeType: String(file.mimeType || 'application/octet-stream'),
     thumbDataUrl: thumb,
     encryptedKey: sanitizeEncryptedKey(file.encryptedKey),
+    folderWrappedKey: sanitizeFolderWrappedKey(file.folderWrappedKey),
     createdAt: String(file.createdAt || new Date().toISOString()),
     folderId:
       file.folderId === undefined || file.folderId === null
