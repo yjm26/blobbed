@@ -15,6 +15,7 @@ import type { ShareFileItem, SharePayload } from '../../scripts/types';
 import MediaLightbox, {
   type MediaLightboxState,
 } from '../components/feature/media/MediaLightbox';
+import AegisLogo from '../components/shared/AegisLogo';
 
 function filesFromPayload(p: SharePayload): { title: string; files: ShareFileItem[] } {
   if (p.type === 'folder') {
@@ -146,8 +147,8 @@ export default function ViewPage() {
   return (
     <div className="app-page view-page">
       <header className="app-top app-reveal app-reveal-1">
-        <Link to="/" className="app-brand">
-          AEGIS
+        <Link to="/" className="app-brand" aria-label="Aegis home">
+          <AegisLogo variant="horizontal" />
         </Link>
         <div className="app-top-right">
           <Link to="/" className="app-link">

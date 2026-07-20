@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { parseShareFragment } from '../../scripts/share';
 import { downloadShareItem } from '../../scripts/preview';
 import type { ShareFileItem, SharePayload } from '../../scripts/types';
+import AegisLogo from '../components/shared/AegisLogo';
 
 function toItems(p: SharePayload): ShareFileItem[] {
   if (p.type === 'folder') return p.files || [];
@@ -61,8 +62,8 @@ export default function DownloadPage() {
   return (
     <div className="app-page" style={{ display: 'grid', placeItems: 'center', minHeight: '100vh' }}>
       <div style={{ textAlign: 'center', maxWidth: 420, padding: 24 }}>
-        <Link to="/" className="app-brand" style={{ display: 'inline-block', marginBottom: 24 }}>
-          AEGIS
+        <Link to="/" className="app-brand" style={{ display: 'inline-flex', marginBottom: 24 }} aria-label="Aegis home">
+          <AegisLogo variant="horizontal" />
         </Link>
         <h1 className="app-stage-title">{msg}</h1>
         {err ? <p className="gate-error" style={{ display: 'block' }}>{err}</p> : null}

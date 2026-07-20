@@ -1,5 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
+import AegisLogo from '../shared/AegisLogo';
 
 export type DriveTopBarProps = {
   address: string;
@@ -27,8 +28,8 @@ export default function DriveTopBar({
 
   return (
     <header className="app-top app-reveal app-reveal-1">
-      <Link to="/" className="app-brand">
-        AEGIS
+      <Link to="/" className="app-brand" aria-label="Aegis home">
+        <AegisLogo variant="horizontal" />
       </Link>
       <div className="app-top-right">
         {showVaultChip ? (

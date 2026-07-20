@@ -1,4 +1,4 @@
-import React from 'react';
+import AegisLogo from './AegisLogo';
 
 type Props = {
   /** Primary line */
@@ -36,10 +36,9 @@ export default function BrandLoader({
     >
       <div className="brand-loader-ambient" aria-hidden="true" />
       <div className="brand-loader-inner">
-        <p className="brand-loader-word">Aegis</p>
+        <AegisLogo variant="horizontal" className="brand-loader-word" />
         <div className="brand-loader-mark" aria-hidden="true">
-          <span className="brand-loader-ring" />
-          <span className="brand-loader-core">A</span>
+          <AegisLogo variant="icon" className="brand-loader-icon" alt="" />
         </div>
         <div className="brand-loader-copy">
           <p className="brand-loader-label">{label}</p>

@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import LandingSections from './components/landing/LandingSections';
+import AegisLogo from './components/shared/AegisLogo';
 import PaperShader from './components/shared/PaperShader';
 
 export default function Landing() {
@@ -7,7 +8,9 @@ export default function Landing() {
     <div className="landing-page">
       <nav className="landing-nav">
         <div className="nav-inner">
-          <div className="landing-logo">AEGIS</div>
+          <Link to="/" className="landing-logo" aria-label="Aegis home">
+            <AegisLogo variant="horizontal" />
+          </Link>
           <Link to="/gate" className="nav-cta">
             GO TO APP
           </Link>

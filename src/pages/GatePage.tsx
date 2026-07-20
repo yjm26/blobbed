@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { connectWallet, getConnectedWallet, hasAppSession } from '../../scripts/aptos-client';
 import BrandLoader from '../components/shared/BrandLoader';
+import AegisLogo from '../components/shared/AegisLogo';
 
 function sleep(ms: number) {
   return new Promise((r) => setTimeout(r, ms));
@@ -82,7 +83,8 @@ export default function GatePage() {
       </Link>
 
       <main className="gate-center">
-        <h1 className="gate-brand">Aegis</h1>
+        <AegisLogo variant="horizontal" className="gate-logo" />
+        <AegisLogo variant="icon" className="gate-login-icon" alt="" />
         <p className="gate-sub">{checking ? 'Checking session…' : sub}</p>
         <button
           type="button"
