@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useMemo } from 'react';
 
 export type QueueItemStatus =
   | 'queued'
@@ -33,6 +33,14 @@ function formatSize(bytes: number): string {
   return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
 }
 
+function itemPhase(item: QueueItem): string {
+  if (item.status === 'running') return item.phase || 'Encrypting & uploading';
+  if (item.status === 'queued') return 'Waiting';
+  if (item.status === 'done') return 'Done';
+  if (item.status === 'cancelled') return 'Cancelled';
+  return 'Needs attention';
+}
+
 export default function UploadQueuePanel({
   items,
   onRetry,
@@ -54,11 +62,12 @@ export default function UploadQueuePanel({
   if (!items.length) return null;
 
   const running = items.find((i) => i.status === 'running');
+  const completedCount = items.filter((i) => i.status === 'done').length;
   const header = running
-    ? `Uploading · ${running.name}`
+    ? `Encrypting & uploading · ${running.name}`
     : active.length
-      ? `${active.length} in queue`
-      : `${done.length} finished`;
+      ? `${active.length} waiting to upload`
+      : `${done.length} completed`;
 
   return (
     <div className={`upload-queue ${collapsed ? 'is-collapsed' : ''}`} role="region" aria-label="Upload queue">
@@ -74,6 +83,11 @@ export default function UploadQueuePanel({
           <span className="upload-queue-count">{items.length}</span>
         </button>
         <div className="upload-queue-head-actions">
+          {items.length > 1 ? (
+            <span className="upload-queue-progress-copy">
+              {completedCount} of {items.length} complete
+            </span>
+          ) : null}
           {done.length > 0 ? (
             <button type="button" className="upload-queue-link" onClick={onClearDone}>
               Clear done
@@ -102,19 +116,11 @@ export default function UploadQueuePanel({
                       {item.name}
                     </p>
                     <p className="upload-queue-sub">
-                      {formatSize(item.size)}
-                      {item.status === 'running' && item.phase
-                        ? ` · ${item.phase}`
-                        : item.status === 'queued'
-                          ? ' · waiting'
-                          : item.status === 'done'
-                            ? ' · done'
-                            : item.status === 'cancelled'
-                              ? ' · cancelled'
-                              : item.error
-                                ? ` · ${item.error}`
-                                : ''}
+                      {formatSize(item.size)} · {itemPhase(item)}
                     </p>
+                    {item.status === 'error' && item.error ? (
+                      <p className="upload-queue-error">{item.error}</p>
+                    ) : null}
                   </div>
                   <div className="upload-queue-actions">
                     {item.status === 'running' || item.status === 'queued' ? (

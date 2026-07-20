@@ -1229,6 +1229,23 @@ html, body { overflow-x: hidden; }
   gap: 1rem;
 }
 
+.drive-stage-head {
+  align-items: flex-start;
+  padding-bottom: 0.25rem;
+}
+
+.drive-stage-copy {
+  min-width: 0;
+}
+
+.drive-stage-kicker {
+  margin: 0 0 0.35rem;
+  font-size: 0.64rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.32);
+}
+
 .app-stage-title {
   font-size: clamp(1.75rem, 3vw, 2.25rem);
   font-weight: 300;
@@ -1274,6 +1291,20 @@ html, body { overflow-x: hidden; }
   transition: border-color 0.15s ease, background 0.15s ease;
   padding: 1.5rem;
   outline: none;
+  background:
+    radial-gradient(ellipse 60% 80% at 50% 0%, rgba(255,255,255,0.035), transparent 65%),
+    rgba(255,255,255,0.01);
+}
+
+.app-drop-mark {
+  width: 1.85rem;
+  height: 1.85rem;
+  margin-bottom: 0.25rem;
+  border: 1px solid rgba(255,255,255,0.18);
+  background:
+    linear-gradient(90deg, transparent 47%, rgba(255,255,255,0.18) 47% 53%, transparent 53%),
+    linear-gradient(0deg, transparent 47%, rgba(255,255,255,0.18) 47% 53%, transparent 53%);
+  opacity: 0.55;
 }
 
 .app-drop:hover,
@@ -1289,6 +1320,12 @@ html, body { overflow-x: hidden; }
   justify-content: flex-start;
   gap: 1rem;
   padding: 0.9rem 1.1rem;
+}
+
+.app-drop-compact .app-drop-mark {
+  width: 1.25rem;
+  height: 1.25rem;
+  margin-bottom: 0;
 }
 
 .app-drop-title {
@@ -1352,6 +1389,7 @@ html, body { overflow-x: hidden; }
 }
 
 .app-btn-text:hover { color: var(--text, #fff); }
+.app-btn-text-primary { color: rgba(245, 245, 245, 0.86); }
 .app-btn-danger:hover { color: #e8a0a0; }
 
 .app-empty {
@@ -1482,6 +1520,24 @@ html, body { overflow-x: hidden; }
     padding: 1.25rem 1.25rem 2.5rem;
   }
 
+  .drive-stage-head {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .drive-toolbar {
+    justify-content: flex-start;
+  }
+
+  .drive-toolbar-upload {
+    width: auto;
+  }
+
+  .drive-action-menu-popover {
+    right: auto;
+    left: 0;
+  }
+
   .app-file-row {
     flex-direction: column;
     align-items: flex-start;
@@ -1491,10 +1547,31 @@ html, body { overflow-x: hidden; }
 @media (max-width: 480px) {
   .app-top {
     padding: 0.85rem 1rem;
+    align-items: flex-start;
+  }
+
+  .app-top-right {
+    gap: 0.45rem;
+  }
+
+  .app-brand .aegis-logo--horizontal {
+    width: 5.35rem;
   }
 
   .wallet-chip {
     max-width: 7.5rem;
+  }
+
+  .vault-chip {
+    max-width: 7.75rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .app-link-muted {
+    width: 100%;
+    text-align: right;
   }
 }
 
@@ -1535,7 +1612,9 @@ html, body { overflow-x: hidden; }
 .drive-folder-card {
   appearance: none;
   border: 1px solid var(--border, #2a2a2a);
-  background: transparent;
+  background:
+    radial-gradient(ellipse 85% 70% at 15% 0%, rgba(120, 145, 170, 0.075), transparent 70%),
+    rgba(255,255,255,0.012);
   color: inherit;
   text-align: left;
   padding: 1rem 0.9rem;
@@ -1551,9 +1630,29 @@ html, body { overflow-x: hidden; }
   background: color-mix(in oklch, var(--text, #fff) 3%, transparent);
 }
 .drive-folder-icon {
-  font-size: 1.25rem;
-  opacity: 0.5;
-  line-height: 1;
+  position: relative;
+  display: block;
+  width: 1.6rem;
+  height: 1.25rem;
+  opacity: 0.72;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  background: rgba(255, 255, 255, 0.035);
+}
+
+.drive-folder-icon::before {
+  content: "";
+  position: absolute;
+  left: -1px;
+  top: -0.42rem;
+  width: 0.9rem;
+  height: 0.42rem;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-bottom: 0;
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.drive-folder-icon span {
+  display: none;
 }
 .drive-folder-name {
   font-size: 0.875rem;
@@ -1572,10 +1671,20 @@ html, body { overflow-x: hidden; }
   min-width: 0;
 }
 
+.drive-folder-card-wrap > .drive-action-menu {
+  position: absolute;
+  right: 0.55rem;
+  bottom: 0.55rem;
+}
+
+.drive-folder-card-wrap .drive-action-menu-trigger {
+  color: rgba(255, 255, 255, 0.42);
+}
+
 .drive-folder-card-wrap .drive-folder-card {
   width: 100%;
   flex: 1;
-  padding-bottom: 2.25rem;
+  padding-bottom: 2.4rem;
 }
 
 .drive-folder-delete {
@@ -2962,8 +3071,14 @@ html, body { overflow-x: hidden; }
 }
 .upload-queue-head-actions {
   display: flex;
+  align-items: center;
   gap: 0.45rem;
   flex-shrink: 0;
+}
+.upload-queue-progress-copy {
+  font-size: 0.62rem;
+  color: rgba(200, 195, 185, 0.45);
+  white-space: nowrap;
 }
 .upload-queue-link {
   border: 0;
@@ -3015,7 +3130,15 @@ html, body { overflow-x: hidden; }
   text-overflow: ellipsis;
 }
 .upload-queue-item[data-status='error'] .upload-queue-sub {
+  color: rgba(255, 205, 205, 0.66);
+}
+.upload-queue-error {
+  margin: 0.2rem 0 0;
+  max-width: 230px;
   color: #e8a0a0;
+  font-size: 0.66rem;
+  line-height: 1.35;
+  white-space: normal;
 }
 .upload-queue-item[data-status='done'] .upload-queue-sub {
   color: #9bbb9b;
@@ -3045,6 +3168,28 @@ html, body { overflow-x: hidden; }
 
 .share-sheet {
   max-width: 440px;
+}
+.share-sheet-kicker {
+  margin: 0 0 0.45rem;
+  font-size: 0.64rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.38);
+}
+.share-sheet-badge-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin: 0.8rem 0 1rem;
+}
+.share-sheet-badge-row span {
+  border: 1px solid rgba(145, 185, 168, 0.2);
+  background: rgba(60, 95, 82, 0.14);
+  color: rgba(205, 235, 220, 0.72);
+  padding: 0.32rem 0.5rem;
+  font-size: 0.64rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
 }
 .share-sheet-row {
   display: flex;
@@ -3078,6 +3223,11 @@ html, body { overflow-x: hidden; }
   font-size: 0.72rem;
   color: #e8a0a0;
 }
+.share-sheet-ok {
+  margin: 0.45rem 0 0;
+  font-size: 0.72rem;
+  color: rgba(180, 220, 185, 0.74);
+}
 
 .app-toolbar {
   display: inline-flex;
@@ -3087,6 +3237,74 @@ html, body { overflow-x: hidden; }
   border-radius: 999px;
   border: 1px solid rgba(255, 255, 255, 0.08);
   background: rgba(255, 255, 255, 0.03);
+}
+
+.drive-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  max-width: min(100%, 42rem);
+}
+
+.drive-toolbar-panel {
+  flex-shrink: 0;
+}
+
+.drive-toolbar-upload {
+  width: auto;
+  min-width: 7rem;
+  padding-inline: 1.15rem;
+}
+
+.drive-action-menu {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.drive-action-menu-trigger {
+  min-width: 2.75rem;
+}
+
+.drive-action-menu-popover {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 0.45rem);
+  z-index: 50;
+  min-width: 9.75rem;
+  padding: 0.35rem;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(12, 12, 14, 0.96);
+  backdrop-filter: blur(12px);
+  box-shadow: 0 18px 48px rgba(0, 0, 0, 0.38);
+}
+
+.app-file-list .drive-action-menu-popover {
+  top: auto;
+  bottom: calc(100% + 0.45rem);
+}
+
+.drive-action-menu-item {
+  width: 100%;
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.76);
+  padding: 0.55rem 0.65rem;
+  text-align: left;
+  font: inherit;
+  font-size: 0.75rem;
+  cursor: pointer;
+}
+
+.drive-action-menu-item:hover {
+  background: rgba(255, 255, 255, 0.055);
+  color: #fff;
+}
+
+.drive-action-menu-item.is-danger {
+  color: rgba(255, 178, 178, 0.78);
 }
 .app-tool {
   border: 0;
@@ -3178,7 +3396,8 @@ html, body { overflow-x: hidden; }
   position: relative;
 }
 
-.app-empty-actions {
+.app-empty-actions,
+.drive-empty-actions {
   display: flex;
   flex-wrap: wrap;
   gap: 0.5rem;
@@ -3193,6 +3412,44 @@ html, body { overflow-x: hidden; }
   padding: 1.25rem;
   border: 1px dashed rgba(255, 255, 255, 0.08);
   border-radius: 12px;
+}
+
+.drive-empty-state {
+  position: relative;
+  margin-top: 0.25rem;
+  padding: clamp(1.6rem, 4vw, 2.4rem);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background:
+    linear-gradient(90deg, rgba(255,255,255,0.035) 1px, transparent 1px),
+    linear-gradient(180deg, rgba(255,255,255,0.03) 1px, transparent 1px),
+    radial-gradient(ellipse 55% 80% at 12% 0%, rgba(115, 135, 160, 0.08), transparent 70%),
+    rgba(255,255,255,0.012);
+  background-size: 4rem 4rem, 4rem 4rem, auto, auto;
+  text-align: center;
+  overflow: hidden;
+}
+
+.drive-empty-kicker {
+  margin: 0 0 0.55rem;
+  font-size: 0.65rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.42);
+}
+
+.drive-empty-title {
+  margin: 0;
+  font-size: clamp(1.25rem, 3vw, 1.8rem);
+  font-weight: 300;
+  letter-spacing: -0.03em;
+}
+
+.drive-empty-body {
+  max-width: 34rem;
+  margin: 0.55rem auto 0;
+  color: rgba(255, 255, 255, 0.54);
+  font-size: 0.88rem;
+  line-height: 1.6;
 }
 
 .media-lightbox-chrome-actions {

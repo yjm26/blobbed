@@ -1,14 +1,8 @@
 import React from 'react';
 import type { FileMetadata } from '../../../../scripts/types';
 import { isImageMime, isVideoMime } from '../../../../scripts/preview';
-
-function formatSize(bytes: number): string {
-  if (bytes < 1024) return bytes + ' B';
-  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
-  if (bytes < 1024 * 1024 * 1024)
-    return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
-  return (bytes / (1024 * 1024 * 1024)).toFixed(1) + ' GB';
-}
+import DriveActionMenu, { type DriveAction } from './DriveActionMenu';
+import { fileTypeLabel, formatFileDate, formatFileSize } from './driveFormat';
 
 export type DriveFileListProps = {
   files: FileMetadata[];
@@ -47,6 +41,14 @@ export default function DriveFileList({
         const thumb = thumbs.get(f.id);
         const video = isVideoMime(mime, name);
         const checked = selectedIds?.has(f.id) ?? false;
+        const kindLabel = fileTypeLabel(mime, name);
+        const menuActions: DriveAction[] = [
+          ...(onRename
+            ? [{ label: 'Rename', onSelect: () => onRename(f.id) }]
+            : []),
+          ...(onMove ? [{ label: 'Move', onSelect: () => onMove(f.id) }] : []),
+          { label: 'Delete', tone: 'danger', onSelect: () => onDelete(f.id) },
+        ];
 
         return (
           <article
@@ -81,18 +83,18 @@ export default function DriveFileList({
                 <img src={thumb} alt="" />
               ) : (
                 <span className="app-file-thumb-ph app-file-thumb-ph--pulse">
-                  {video ? '▶' : canPreview ? '' : 'FILE'}
+                  {video ? '▶' : canPreview ? '' : kindLabel}
                 </span>
               )}
-              {video ? <span className="app-file-badge">Video</span> : null}
+              <span className="app-file-badge">{kindLabel}</span>
             </button>
             <div className="app-file-meta">
               <h3 className="app-file-name" title={name}>
                 {name}
               </h3>
               <p className="app-file-sub">
-                {formatSize(Number(f.sizeBytes || 0))} ·{' '}
-                {(f.createdAt || '').slice(0, 10)}
+                {formatFileSize(Number(f.sizeBytes || 0))} ·{' '}
+                {formatFileDate(f.createdAt)}
               </p>
             </div>
             <div className="app-file-actions">
@@ -105,38 +107,14 @@ export default function DriveFileList({
                   {video ? 'Play' : 'Preview'}
                 </button>
               ) : null}
-              {onRename ? (
-                <button
-                  type="button"
-                  className="app-btn-text"
-                  onClick={() => onRename(f.id)}
-                >
-                  Rename
-                </button>
-              ) : null}
-              {onMove ? (
-                <button
-                  type="button"
-                  className="app-btn-text"
-                  onClick={() => onMove(f.id)}
-                >
-                  Move
-                </button>
-              ) : null}
               <button
                 type="button"
-                className="app-btn-text"
+                className="app-btn-text app-btn-text-primary"
                 onClick={() => onShare(f.id)}
               >
                 Share
               </button>
-              <button
-                type="button"
-                className="app-btn-text app-btn-danger"
-                onClick={() => onDelete(f.id)}
-              >
-                Delete
-              </button>
+              <DriveActionMenu actions={menuActions} />
             </div>
           </article>
         );

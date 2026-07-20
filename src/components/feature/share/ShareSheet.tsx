@@ -38,14 +38,16 @@ export default function ShareSheet({ state, onClose }: Props) {
 
   if (!state) return null;
 
+  const isFolder = state.kind === 'folder';
+
   async function copy() {
     try {
       await navigator.clipboard.writeText(state!.link);
       setCopied(true);
       setErr('');
-      window.setTimeout(() => setCopied(false), 2000);
+      window.setTimeout(() => setCopied(false), 2600);
     } catch {
-      setErr('Clipboard blocked. Select the link and copy manually');
+      setErr('Clipboard blocked. Select the link and copy manually.');
       inputRef.current?.select();
     }
   }
@@ -65,19 +67,26 @@ export default function ShareSheet({ state, onClose }: Props) {
         aria-labelledby="share-sheet-title"
         onClick={(e) => e.stopPropagation()}
       >
+        <p className="share-sheet-kicker">Capability link</p>
         <h2 id="share-sheet-title" className="app-modal-title">
-          Share {state.kind === 'folder' ? 'folder' : 'file'}
+          {isFolder ? 'Live folder link ready' : 'File link ready'}
         </h2>
         <p className="app-modal-sub">
           <strong className="app-modal-em">{state.title}</strong>
-          {state.kind === 'folder' && state.fileCount != null
+          {isFolder && state.fileCount != null
             ? ` · ${state.fileCount} file${state.fileCount === 1 ? '' : 's'}`
             : ''}
           {state.subtitle ? ` · ${state.subtitle}` : ''}
         </p>
+        {isFolder ? (
+          <div className="share-sheet-badge-row">
+            <span>Live folder</span>
+            <span>New files appear automatically</span>
+          </div>
+        ) : null}
 
         <label className="app-modal-label" htmlFor="share-link-input">
-          Capability link
+          Link
         </label>
         <div className="share-sheet-row">
           <input
@@ -96,18 +105,17 @@ export default function ShareSheet({ state, onClose }: Props) {
             {copied ? 'Copied' : 'Copy'}
           </button>
         </div>
+        {copied ? (
+          <p className="share-sheet-ok">
+            Copied. Anyone with this link can decrypt in their browser.
+          </p>
+        ) : null}
         {err ? <p className="share-sheet-err">{err}</p> : null}
 
         <ul className="share-sheet-notes">
-          <li>
-            Decryption key sits in the URL <code>#fragment</code>. Not sent to our
-            servers.
-          </li>
-          <li>Anyone with the link can open and decrypt. No wallet needed to view.</li>
-          <li>
-            <strong>Lose the link → lose access.</strong> We do not keep a “shared
-            with you” inbox.
-          </li>
+          <li>The decryption key stays in the URL fragment, not API requests.</li>
+          <li>Recipients do not need a wallet.</li>
+          <li>Anyone with the link can decrypt. Rotate or revoke folder links when needed.</li>
         </ul>
 
         <div className="app-modal-actions">

@@ -50,6 +50,7 @@ import {
   DriveBootError,
   DriveBootProgress,
   DriveBulkBar,
+  DriveEmptyState,
   type BootStepId,
 } from '../components/feature/drive';
 import TrustPanel from '../components/shared/TrustPanel';
@@ -929,65 +930,27 @@ export default function DrivePage() {
         {hasContent &&
         files.length === 0 &&
         (filterQuery || filterKind !== 'all') ? (
-          <div className="app-empty app-empty--soft">
-            <p className="app-empty-title">No matches</p>
-            <p className="app-empty-hint">
-              Try another search or clear filters.
-            </p>
-            <button
-              type="button"
-              className="app-btn-ghost"
-              onClick={() => {
-                setFilterQuery('');
-                setFilterKind('all');
-              }}
-            >
-              Clear filters
-            </button>
-          </div>
+          <DriveEmptyState
+            scope="filtered"
+            onUpload={() => inputRef.current?.click()}
+            onClearFilters={() => {
+              setFilterQuery('');
+              setFilterKind('all');
+            }}
+          />
         ) : null}
 
         {!hasContent ? (
-          <div className="app-empty">
-            <p className="app-empty-title">
-              {folderId ? 'This folder is empty' : 'Your library is empty'}
-            </p>
-            <p className="app-empty-hint">
-              {folderId
-                ? 'Drop files above or click Upload to fill this album.'
-                : 'Create a folder for an album, or upload loose files.'}
-            </p>
-            <div className="app-empty-actions">
-              {!folderId ? (
-                <button
-                  type="button"
-                  className="app-btn-ghost"
-                  onClick={openNewFolder}
-                >
-                  New folder
-                </button>
-              ) : null}
-              <button
-                type="button"
-                className="app-upload-cta app-empty-cta"
-                onClick={() => inputRef.current?.click()}
-              >
-                Upload files
-              </button>
-            </div>
-          </div>
+          <DriveEmptyState
+            scope={folderId ? 'folder' : 'library'}
+            onUpload={() => inputRef.current?.click()}
+            onNewFolder={!folderId ? openNewFolder : undefined}
+          />
         ) : folderId && files.length === 0 ? (
-          <div className="app-empty app-empty--soft">
-            <p className="app-empty-title">No files in this folder</p>
-            <p className="app-empty-hint">Drop media here to build the album.</p>
-            <button
-              type="button"
-              className="app-btn-ghost"
-              onClick={() => inputRef.current?.click()}
-            >
-              Upload into folder
-            </button>
-          </div>
+          <DriveEmptyState
+            scope="folder"
+            onUpload={() => inputRef.current?.click()}
+          />
         ) : null}
 
         {status ? (

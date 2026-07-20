@@ -1,8 +1,6 @@
 import React from 'react';
-import FilterMenu, {
-  type FileKindFilter,
-  type SortKey,
-} from '../../shared/FilterMenu';
+import type { FileKindFilter, SortKey } from '../../shared/FilterMenu';
+import DriveToolbar from './DriveToolbar';
 
 export type DriveHeaderProps = {
   folderName?: string | null;
@@ -46,79 +44,42 @@ export default function DriveHeader({
   onDeleteFolder,
 }: DriveHeaderProps) {
   const inFolder = Boolean(folderName);
+  const subtitle = inFolder
+    ? `${fileCount} file${fileCount === 1 ? '' : 's'} · live folder sharing available`
+    : `${folderCount} folder${folderCount === 1 ? '' : 's'} · ${looseFileCount} loose file${
+        looseFileCount === 1 ? '' : 's'
+      } · encrypted before upload`;
 
   return (
-    <div className="app-stage-head">
-      <div>
+    <div className="app-stage-head drive-stage-head">
+      <div className="drive-stage-copy">
         {inFolder ? (
           <button type="button" className="app-back" onClick={onBackToLibrary}>
             ← Library
           </button>
         ) : null}
+        <p className="drive-stage-kicker">Encrypted storage</p>
         <h1 className="app-stage-title">{folderName || 'Library'}</h1>
-        <p className="app-stage-sub">
-          {inFolder
-            ? `${fileCount} file${fileCount === 1 ? '' : 's'} in this folder`
-            : `${folderCount} folder${folderCount === 1 ? '' : 's'} · ${looseFileCount} loose file${
-                looseFileCount === 1 ? '' : 's'
-              }`}
-        </p>
+        <p className="app-stage-sub">{subtitle}</p>
       </div>
 
-      <div className="app-stage-actions">
-        <div className="app-toolbar" role="group" aria-label="View options">
-          <button
-            type="button"
-            className={`app-tool ${viewMode === 'list' ? 'is-active' : ''}`}
-            onClick={() => onViewChange('list')}
-            title="List view"
-          >
-            List
-          </button>
-          <button
-            type="button"
-            className={`app-tool ${viewMode === 'grid' ? 'is-active' : ''}`}
-            onClick={() => onViewChange('grid')}
-            title="Grid view"
-          >
-            Grid
-          </button>
-          <FilterMenu
-            open={filterOpen}
-            onOpenChange={onFilterOpenChange}
-            query={filterQuery}
-            onQueryChange={onFilterQueryChange}
-            kind={filterKind}
-            onKindChange={onFilterKindChange}
-            sort={sortBy}
-            onSortChange={onSortChange}
-            resultCount={fileCount}
-          />
-        </div>
-
-        {inFolder ? (
-          <>
-            <button
-              type="button"
-              className="app-btn-ghost"
-              onClick={onShareFolder}
-            >
-              Share folder
-            </button>
-            <button
-              type="button"
-              className="app-btn-ghost app-btn-ghost-danger"
-              onClick={onDeleteFolder}
-            >
-              Delete folder
-            </button>
-          </>
-        ) : null}
-
-        <button type="button" className="app-btn-ghost" onClick={onUpload}>
-          Upload
-        </button>
-      </div>
+      <DriveToolbar
+        inFolder={inFolder}
+        viewMode={viewMode}
+        onViewChange={onViewChange}
+        filterOpen={filterOpen}
+        onFilterOpenChange={onFilterOpenChange}
+        filterQuery={filterQuery}
+        onFilterQueryChange={onFilterQueryChange}
+        filterKind={filterKind}
+        onFilterKindChange={onFilterKindChange}
+        sortBy={sortBy}
+        onSortChange={onSortChange}
+        resultCount={fileCount}
+        onUpload={onUpload}
+        onShareFolder={onShareFolder}
+        onDeleteFolder={onDeleteFolder}
+      />
     </div>
   );
 }
