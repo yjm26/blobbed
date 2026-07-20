@@ -424,4 +424,30 @@ describe('Tailwind migration guardrails', () => {
     expect(page).toContain('<DriveSectionHeader');
     expect(page).toContain('<FilesToolbar');
   });
+
+  it('uses plain-language security copy in the Drive app chrome', () => {
+    const page = read('src/pages/DrivePage.tsx');
+    const trust = read('src/components/shared/TrustPanel.tsx');
+    const topbar = read('src/components/layout/DriveTopBar.tsx');
+    const driveChrome = [page, trust, topbar].join('\n');
+
+    expect(topbar).toContain('Encryption active');
+    expect(topbar).toContain('Unlock encryption');
+    expect(topbar).toContain('Files encrypt on this device before upload');
+    expect(trust).toContain('Private vault unlocked');
+    expect(trust).toContain('Library synced');
+    expect(page).toContain('Files encrypt on this device before upload');
+    expect(page).toContain('protected key');
+
+    for (const staleCopy of [
+      'Keys wrapped',
+      'Vault unlocked',
+      'Vault locked',
+      'meta:',
+      'Library on Neon',
+      'Unlock keys. Check wallet',
+    ]) {
+      expect(driveChrome).not.toContain(staleCopy);
+    }
+  });
 });

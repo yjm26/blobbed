@@ -261,8 +261,8 @@ export default function DrivePage() {
         setKeyStats(stats);
         if (backend === 'neon') {
           setStatus({
-            msg: `Library synced (Neon) · keys ${stats.wrapped} wrapped${
-              stats.plain ? ` · ${stats.plain} legacy` : ''
+            msg: `Library synced · ${stats.wrapped} protected key${stats.wrapped === 1 ? '' : 's'}${
+              stats.plain ? ` · ${stats.plain} legacy item${stats.plain === 1 ? '' : 's'}` : ''
             }`,
             kind: 'ok',
           });
@@ -808,7 +808,7 @@ export default function DrivePage() {
   async function onUnlockVault() {
     if (!wallet) return;
     try {
-      setStatus({ msg: 'Unlock keys. Check wallet…', kind: 'info' });
+      setStatus({ msg: 'Unlock encryption. Check wallet…', kind: 'info' });
       await ensureVaultUnlocked(wallet, { forcePrompt: true });
       setVaultOk(true);
       setLibraryAuthWallet(wallet);
@@ -818,8 +818,8 @@ export default function DrivePage() {
       setStatus({
         msg:
           mig.migrated > 0
-            ? `Vault unlocked · wrapped ${mig.migrated} legacy key(s)`
-            : 'Vault unlocked · file keys wallet-wrapped',
+            ? `Private vault unlocked · protected ${mig.migrated} legacy key${mig.migrated === 1 ? '' : 's'}`
+            : 'Encryption active · file keys protected',
         kind: 'ok',
       });
       refresh();
@@ -866,13 +866,13 @@ export default function DrivePage() {
   const hasLibraryItems = files.length > 0 || folders.length > 0;
   const backend = getLibraryBackend();
   const railFoot = [
-    'Encrypted on device. Blobs on Shelby.',
+    'Files encrypt on this device before upload. Blobs live on Shelby.',
     backend === 'neon'
-      ? 'Library on Neon.'
+      ? 'Library synced.'
       : backend === 'memory'
-        ? 'Library: server memory.'
-        : 'Library: this device.',
-    vaultOk ? 'Keys wrapped.' : '',
+        ? 'Library sync is temporary.'
+        : 'Library stays on this device.',
+    vaultOk ? 'Encryption active.' : '',
   ]
     .filter(Boolean)
     .join(' ');

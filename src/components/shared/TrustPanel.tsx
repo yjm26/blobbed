@@ -111,14 +111,23 @@ export default function TrustPanel({
   }
 
   // drive
-  const be =
+  const syncTarget =
     backend === 'neon'
-      ? 'Neon durable'
-      : backend === 'memory'
-        ? 'server memory'
+      ? 'Neon'
+    : backend === 'memory'
+        ? 'temporary server memory'
         : backend === 'local'
-          ? 'this device only'
-          : '…';
+          ? 'this device'
+          : 'checking…';
+  const protectedKeyCopy = keyStats
+    ? ` · ${keyStats.wrapped} protected key${keyStats.wrapped === 1 ? '' : 's'}${
+        keyStats.plain ? ` · ${keyStats.plain} legacy item${keyStats.plain === 1 ? '' : 's'}` : ''
+      }${
+        keyStats.plainThumbs
+          ? ` · ${keyStats.plainThumbs} unsealed thumb${keyStats.plainThumbs === 1 ? '' : 's'}`
+          : ''
+      }`
+    : '';
 
   if (compact) {
     return (
@@ -131,15 +140,9 @@ export default function TrustPanel({
           }`}
         />
         <span>
-          {vaultOk ? 'Vault unlocked' : 'Vault locked'}
-          {keyStats
-            ? ` · ${keyStats.wrapped} wrapped${keyStats.plain ? ` · ${keyStats.plain} legacy` : ''}${
-                keyStats.plainThumbs
-                  ? ` · ${keyStats.plainThumbs} plain thumbs`
-                  : ''
-              }`
-            : ''}
-          {` · meta: ${be}`}
+          {vaultOk ? 'Private vault unlocked' : 'Private vault locked'}
+          {protectedKeyCopy}
+          {` · Library synced: ${syncTarget}`}
         </span>
         {!vaultOk && onUnlock ? (
           <button
@@ -156,30 +159,29 @@ export default function TrustPanel({
 
   return (
     <div className={`${panelBase} ${boxedPanel} mx-auto mt-2 w-full max-w-[70rem] px-5 ${className}`.trim()}>
-      <p className={leadClass}>What we can and cannot see</p>
+      <p className={leadClass}>Security details</p>
       <ul className={listClass}>
         <li>
-          <strong>Can see:</strong> wallet address, file names, sizes, blob
+          <strong>Files encrypt on this device before upload.</strong> The API can see wallet address, file names, sizes, blob
           pointers, wrapped key blobs, optional thumbs you generate.
         </li>
         <li>
-          <strong>Cannot see:</strong> plaintext files; raw DEKs when
-          wallet-wrapped; share-link keys (fragment never sent to our API).
+          <strong>File contents stay private:</strong> plaintext files and raw file keys stay out of the API when keys are protected by your wallet-derived vault key.
         </li>
         <li>
           <strong>Share default:</strong> lose the link → lose access. No server
           “Shared with you” inbox.
         </li>
         <li>
-          Status: vault {vaultOk ? 'unlocked' : 'locked'} · library {be}
+          Status: {vaultOk ? 'private vault open' : 'private vault locked'} · library synced: {syncTarget}
           {keyStats
-            ? ` · ${keyStats.wrapped} keys wrapped${keyStats.plain ? `, ${keyStats.plain} legacy plain` : ''}`
+            ? ` · ${keyStats.wrapped} protected key${keyStats.wrapped === 1 ? '' : 's'}${keyStats.plain ? `, ${keyStats.plain} legacy plain item${keyStats.plain === 1 ? '' : 's'}` : ''}`
             : ''}
         </li>
       </ul>
       {!vaultOk && onUnlock ? (
         <button type="button" className={unlockButton} onClick={onUnlock}>
-          Sign to unlock keys
+          Sign to unlock encryption
         </button>
       ) : null}
     </div>

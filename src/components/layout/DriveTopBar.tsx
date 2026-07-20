@@ -35,19 +35,19 @@ export default function DriveTopBar({
         {showVaultChip ? (
           <button
             type="button"
-            className={`max-w-[7.75rem] overflow-hidden text-ellipsis whitespace-nowrap rounded-full border px-2.5 py-1 text-[0.68rem] tracking-[0.02em] transition-colors duration-150 hover:border-white/30 ${
+            className={`max-w-[9.5rem] overflow-hidden text-ellipsis whitespace-nowrap rounded-full border px-2.5 py-1 text-[0.68rem] tracking-[0.02em] transition-colors duration-150 hover:border-white/30 ${
               vaultOk
                 ? 'border-[rgba(100,160,110,0.35)] bg-white/[0.04] text-[#b8d4b8]'
                 : 'border-[rgba(200,150,60,0.4)] bg-white/[0.04] text-[#e0c090]'
             }`}
             title={
               vaultOk
-                ? 'File keys wrapped with wallet-derived key'
-                : 'Sign with wallet to unlock wrapped keys'
+                ? 'Files encrypt on this device before upload. Your file keys are protected by a wallet-derived vault key.'
+                : 'Sign with your wallet to unlock encryption for previews, sharing, and library sync.'
             }
             onClick={onUnlockVault}
           >
-            {vaultOk ? 'Keys wrapped' : 'Unlock keys'}
+            {vaultOk ? 'Encryption active' : 'Unlock encryption'}
           </button>
         ) : null}
         <span className="max-w-44 overflow-hidden text-ellipsis whitespace-nowrap border border-[var(--border)] px-2.5 py-1 font-mono text-[0.6875rem] tracking-[0.04em] text-[var(--text-3)] max-[480px]:max-w-[7.5rem]" title={address}>
