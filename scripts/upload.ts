@@ -4,9 +4,9 @@ import {
   encryptForUpload,
 } from './chunked-crypto';
 import { generateThumbDataUrl } from './thumbs';
-import { addFile } from './library-store';
+import { addFile, loadLibrary } from './library-store';
 import { ensureVaultUnlocked, sealThumb } from './vault';
-import { wrapFileKey } from './key-wrap';
+import { unwrapFileKey, wrapFileKey, wrapFolderFileKey } from './key-wrap';
 import { createOwnerAuth, sha256Hex } from './owner-auth';
 import type { FileMetadata, UploadResult, WalletAccount } from './types';
 
@@ -134,6 +134,14 @@ export async function uploadFile(
   const vaultKey = await ensureVaultUnlocked(wallet);
   throwIfAborted(signal);
   const storedKey = await wrapFileKey(key, vaultKey);
+  let folderWrappedKey: string | undefined;
+  if (folderId) {
+    const liveFolder = loadLibrary(wallet.address).folders.find((f) => f.id === folderId);
+    if (liveFolder?.folderKeyWrapped) {
+      const folderKey = await unwrapFileKey(liveFolder.folderKeyWrapped, vaultKey);
+      folderWrappedKey = await wrapFolderFileKey(key, folderKey);
+    }
+  }
   const sealedThumb = plainThumb ? await sealThumb(plainThumb, wallet) : undefined;
   const id = crypto.randomUUID();
 
@@ -152,6 +160,7 @@ export async function uploadFile(
     folderId,
     encFormat: format,
     thumbDataUrl: sealedThumb,
+    folderWrappedKey,
   };
 
   await addFile(wallet.address, meta);

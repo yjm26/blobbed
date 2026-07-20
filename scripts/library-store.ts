@@ -250,6 +250,40 @@ export function saveLibrary(ownerAddress: string, lib: LibrarySnapshot): void {
   writeLocal(ownerAddress, lib);
 }
 
+export async function syncLibrary(ownerAddress: string, lib: LibrarySnapshot): Promise<LibrarySnapshot> {
+  const remote = await apiPost({
+    op: 'sync',
+    ownerAddress,
+    folders: lib.folders,
+    files: lib.files,
+  });
+  if (remote && Array.isArray(remote.folders)) {
+    const next: LibrarySnapshot = {
+      version: 1,
+      folders: remote.folders as FolderMetadata[],
+      files: (remote.files as FileMetadata[]) || [],
+    };
+    writeLocal(ownerAddress, next);
+    return next;
+  }
+  writeLocal(ownerAddress, lib);
+  return lib;
+}
+
+export async function enableFolderShareRemote(
+  ownerAddress: string,
+  folderId: string
+): Promise<{ id: string; folderId: string; status: 'active' | 'revoked' }> {
+  const remote = await apiPost({
+    op: 'enableFolderShare',
+    ownerAddress,
+    folderId,
+  });
+  const share = remote?.share as { id?: string; folderId?: string; status?: 'active' | 'revoked' } | undefined;
+  if (!share?.id) throw new Error('Enable live share failed');
+  return { id: share.id, folderId: share.folderId || folderId, status: share.status || 'active' };
+}
+
 export async function createFolder(
   ownerAddress: string,
   name: string
@@ -393,19 +427,22 @@ export async function renameFile(ownerAddress: string, fileId: string, newName: 
 export async function moveFile(
   ownerAddress: string,
   fileId: string,
-  folderId: string | null
+  folderId: string | null,
+  folderWrappedKey?: string | null
 ): Promise<void> {
   await apiPost({
     op: 'moveFile',
     ownerAddress,
     fileId,
     folderId,
+    folderWrappedKey,
   });
 
   const lib = getCached(ownerAddress);
   const f = lib.files.find((x) => x.id === fileId);
   if (f) {
     f.folderId = folderId;
+    f.folderWrappedKey = folderWrappedKey || undefined;
     writeLocal(ownerAddress, lib);
   }
 }

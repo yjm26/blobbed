@@ -71,6 +71,26 @@ export interface FileSharePayload {
 
 export type SharePayload = FolderSharePayload | FileSharePayload;
 
+export interface LiveFolderShareItem {
+  id: string;
+  name: string;
+  mime: string;
+  size: number;
+  a: string;
+  n: string;
+  fk: string;
+  encFormat?: 'legacy' | 'chunked';
+}
+
+export interface LiveFolderSharePayload {
+  v: 1;
+  type: 'folder-live';
+  shareId: string;
+  name: string;
+  updatedAt: string;
+  files: LiveFolderShareItem[];
+}
+
 export interface UploadResult {
   storageAccount: string;
   blobName: string;

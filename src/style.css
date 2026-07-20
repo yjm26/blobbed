@@ -833,9 +833,9 @@ html, body {
 }
 
 .app-brand {
-  font-size: 0.8125rem;
-  font-weight: 500;
-  letter-spacing: 0.2em;
+  font-size: clamp(1rem, 1.4vw, 1.18rem);
+  font-weight: 600;
+  letter-spacing: 0.18em;
   text-transform: uppercase;
   color: var(--text, #fff);
   text-decoration: none;

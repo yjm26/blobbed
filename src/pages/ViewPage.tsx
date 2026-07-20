@@ -1,6 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { parseShareFragment } from '../../scripts/share';
+import { parseLiveFolderFragment, parseShareFragment } from '../../scripts/share';
+import {
+  fetchLiveFolderShare,
+  liveFolderItemsToShareItems,
+} from '../../scripts/live-share-view';
 import {
   previewObjectUrl,
   downloadShareItem,
@@ -50,23 +54,43 @@ export default function ViewPage() {
     let cancelled = false;
 
     (async () => {
-      const payload = parseShareFragment(loc.hash || window.location.hash);
-      if (!payload) {
-        setTitle('Invalid link');
-        setSub('This share link is missing or corrupted.');
-        setError('No share payload in URL.');
-        return;
+      setError('');
+      const hash = loc.hash || window.location.hash;
+      let t = 'Shared';
+      let files: ShareFileItem[] = [];
+      const liveRef = parseLiveFolderFragment(hash);
+      if (liveRef) {
+        setTitle('Live folder');
+        setSub('Loading current folder contents…');
+        const live = await fetchLiveFolderShare(liveRef.shareId);
+        files = await liveFolderItemsToShareItems(live, liveRef.folderKey);
+        t = live.name || 'Live folder';
+        setSub(
+          `${files.length} item${files.length === 1 ? '' : 's'} · live folder · decrypts in your browser`
+        );
+      } else {
+        const payload = parseShareFragment(hash);
+        if (!payload) {
+          setTitle('Invalid link');
+          setSub('This share link is missing or corrupted.');
+          setError('No share payload in URL.');
+          return;
+        }
+        const snap = filesFromPayload(payload);
+        t = snap.title;
+        files = snap.files;
+        setSub(
+          files.length
+            ? `${files.length} item${files.length === 1 ? '' : 's'} · decrypts in your browser only`
+            : 'This folder is empty.'
+        );
       }
-      const { title: t, files } = filesFromPayload(payload);
       if (!files.length) {
         setTitle(t);
-        setSub('This folder is empty.');
+        setTiles([]);
         return;
       }
       setTitle(t);
-      setSub(
-        `${files.length} item${files.length === 1 ? '' : 's'} · decrypts in your browser only`
-      );
       setTiles(files.map((item) => ({ item })));
 
       for (let i = 0; i < files.length; i++) {

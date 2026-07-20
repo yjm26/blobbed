@@ -25,9 +25,9 @@ import {
 } from '../../scripts/library-store';
 import {
   generateFileShareLink,
-  generateFolderShareLink,
   fileToShareItemAsync,
 } from '../../scripts/share';
+import { prepareLiveFolderShare } from '../../scripts/live-folder-share';
 import {
   previewObjectUrl,
   isImageMime,
@@ -402,14 +402,15 @@ export default function DrivePage() {
       return;
     }
     try {
-      setStatus({ msg: 'Building share link…', kind: 'info' });
-      const link = await generateFolderShareLink(folder, fl, wallet);
+      setStatus({ msg: 'Preparing live folder link…', kind: 'info' });
+      const live = await prepareLiveFolderShare(owner, wallet, folder, fl);
+      refresh();
       setShareSheet({
         title: folder.name,
         kind: 'folder',
-        link,
+        link: live.link,
         fileCount: fl.length,
-        subtitle: 'keys in #fragment',
+        subtitle: live.filesWrapped > 0 ? `live link · wrapped ${live.filesWrapped}` : 'live link',
       });
       setStatus(null);
     } catch (err: unknown) {
