@@ -61,6 +61,36 @@ describe('Tailwind migration guardrails', () => {
     }
   });
 
+  it('uses Tailwind as the shared loader styling path instead of keeping brand-loader vanilla CSS blocks', () => {
+    const style = read('src/style.css');
+    const loaderFiles = [
+      'src/components/shared/BrandLoader.tsx',
+      'src/components/feature/drive/DriveBootError.tsx',
+      'src/components/feature/drive/DriveBootProgress.tsx',
+    ].map(read).join('\n');
+
+    expect(loaderFiles).toMatch(/\bfixed\b|\bgrid\b|\bborder-\[/);
+    for (const selector of [
+      '.brand-loader',
+      '.brand-loader--overlay',
+      '.brand-loader-ambient',
+      '.brand-loader-inner',
+      '.brand-loader-mark',
+      '.brand-loader-icon',
+      '.brand-loader-copy',
+      '.brand-loader-label',
+      '.brand-loader-hint',
+      '.brand-loader-bar',
+      '.brand-loader-boot-bar',
+      '.brand-loader-actions',
+      '@keyframes brand-bar-slide',
+      '@keyframes brand-loader-in',
+      '@keyframes brand-mark-enter',
+    ]) {
+      expect(style).not.toContain(selector);
+    }
+  });
+
   it('uses Tailwind as the Drive styling path instead of adding vanilla CSS blocks', () => {
     const main = read('src/main.tsx');
     const style = read('src/style.css');

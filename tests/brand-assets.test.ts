@@ -23,10 +23,12 @@ describe('Aegis brand assets', () => {
       'utf8'
     );
     expect(bootError).toContain("import AegisLogo from '../../shared/AegisLogo'");
-    expect(bootError).toContain('brand-loader-mark--logo');
     expect(bootError).toContain('variant="icon"');
+    expect(bootError).toContain('fixed inset-0');
+    expect(bootError).toContain('place-items-center');
     expect(bootError).not.toContain('brand-loader-ring');
     expect(bootError).not.toContain('brand-loader-core');
+    expect(bootError).not.toContain('brand-loader-mark--logo');
   });
 
   it('keeps wallet connect errors in branded gate UI without legacy gate CSS classes', () => {

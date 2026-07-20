@@ -998,214 +998,6 @@ body {
   }
 }
 
-/* Brand loader - full viewport, never a narrow column strip */
-.brand-loader {
-  position: fixed;
-  inset: 0;
-  z-index: 70;
-  width: 100%;
-  min-height: 100svh;
-  min-height: 100dvh;
-  display: grid;
-  place-items: center;
-  padding: 2rem 1.5rem;
-  background: #070707;
-  color: #f2f2f2;
-  overflow: hidden;
-}
-
-.brand-loader--overlay {
-  z-index: 90;
-  background: rgba(5, 5, 5, 0.82);
-  backdrop-filter: blur(14px) saturate(1.05);
-  -webkit-backdrop-filter: blur(14px) saturate(1.05);
-  animation: app-modal-fade 0.28s ease both;
-}
-
-.brand-loader-ambient {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  background:
-    radial-gradient(ellipse 55% 40% at 50% 42%, rgba(255, 255, 255, 0.055), transparent 70%),
-    radial-gradient(ellipse 80% 60% at 50% 100%, rgba(120, 120, 160, 0.04), transparent 55%);
-}
-
-.brand-loader-inner {
-  position: relative;
-  z-index: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0;
-  width: min(100%, 17rem);
-  animation: brand-loader-in 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
-}
-
-.brand-loader--boot .brand-loader-inner {
-  width: min(100%, 18rem);
-}
-
-.brand-loader-word {
-  width: clamp(7rem, 18vw, 9.5rem);
-  margin: 0 0 1.65rem;
-  opacity: 0.58;
-}
-
-.brand-loader-mark {
-  position: relative;
-  width: 4rem;
-  height: 4rem;
-  display: grid;
-  place-items: center;
-  margin-bottom: 1.5rem;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(255, 255, 255, 0.025);
-}
-
-.brand-loader-mark--logo {
-  width: 4.85rem;
-  height: 4.85rem;
-  margin-bottom: 1.25rem;
-  border: 0;
-  background: transparent;
-}
-
-.brand-loader--boot .brand-loader-mark--logo {
-  width: 5.75rem;
-  height: 5.75rem;
-  margin-bottom: 1.05rem;
-  border: 0;
-  background: transparent;
-}
-
-.brand-loader-icon {
-  width: 2.35rem;
-  opacity: 0.92;
-  filter: drop-shadow(0 0 18px rgba(255, 255, 255, 0.08));
-}
-
-.brand-loader-mark--logo .brand-loader-icon {
-  width: 4.35rem;
-}
-
-.brand-loader--boot .brand-loader-icon,
-.brand-loader--error .brand-loader-icon {
-  width: 5.2rem;
-  opacity: 0.94;
-  filter: drop-shadow(0 0 26px rgba(255, 255, 255, 0.075));
-}
-
-.brand-loader--enter .brand-loader-mark {
-  animation: brand-mark-enter 0.85s cubic-bezier(0.22, 1, 0.36, 1) both;
-}
-
-.brand-loader-copy {
-  text-align: center;
-  margin-bottom: 1.35rem;
-}
-
-.brand-loader--boot .brand-loader-copy {
-  margin: 1.25rem 0 0;
-}
-
-.brand-loader-label {
-  margin: 0;
-  font-size: 0.9375rem;
-  font-weight: 400;
-  letter-spacing: -0.01em;
-  text-transform: none;
-  color: rgba(255, 255, 255, 0.78);
-  line-height: 1.35;
-}
-
-.brand-loader-hint {
-  margin: 0.4rem 0 0;
-  font-size: 0.75rem;
-  font-weight: 300;
-  letter-spacing: 0.01em;
-  color: rgba(255, 255, 255, 0.34);
-  line-height: 1.4;
-}
-
-.brand-loader-bar {
-  width: 100%;
-  height: 1px;
-  background: rgba(255, 255, 255, 0.08);
-  border-radius: 999px;
-  overflow: hidden;
-  position: relative;
-}
-
-.brand-loader-bar-fill {
-  position: absolute;
-  inset: 0 auto 0 0;
-  width: 38%;
-  border-radius: inherit;
-  background: linear-gradient(
-    90deg,
-    transparent,
-    rgba(255, 255, 255, 0.55),
-    transparent
-  );
-  animation: brand-bar-slide 1.35s ease-in-out infinite;
-}
-
-.brand-loader--error .brand-loader-bar {
-  display: none;
-}
-
-.brand-loader-boot-bar {
-  position: relative;
-  width: 100%;
-  height: 2px;
-  overflow: hidden;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.08);
-}
-
-.brand-loader-boot-bar::after {
-  content: "";
-  position: absolute;
-  inset: -7px 0;
-  background: radial-gradient(
-    ellipse 70% 80% at var(--boot-progress, 33%) 50%,
-    rgba(255, 255, 255, 0.16),
-    transparent 58%
-  );
-  opacity: 0.8;
-}
-
-.brand-loader-boot-bar-fill {
-  position: absolute;
-  inset: 0 auto 0 0;
-  width: var(--boot-progress, 33%);
-  min-width: 24%;
-  border-radius: inherit;
-  background: linear-gradient(
-    90deg,
-    rgba(255, 255, 255, 0.2),
-    rgba(255, 255, 255, 0.72),
-    rgba(255, 255, 255, 0.36)
-  );
-  box-shadow: 0 0 18px rgba(255, 255, 255, 0.12);
-  transition: width 0.28s ease;
-}
-
-.brand-loader-actions {
-  margin-top: 1.5rem;
-  display: flex;
-  flex-direction: column;
-  align-items: stretch;
-  gap: 0.55rem;
-  width: 100%;
-}
-
-.brand-loader-actions .app-modal-btn {
-  width: 100%;
-  justify-content: center;
-}
-
 /* Bulk bar */
 .drive-bulk-bar {
   position: fixed;
@@ -1327,32 +1119,11 @@ body {
   to { transform: rotate(360deg); }
 }
 
-@keyframes brand-bar-slide {
-  0% { transform: translateX(-120%); }
-  100% { transform: translateX(320%); }
-}
 
-@keyframes brand-loader-in {
-  from {
-    opacity: 0;
-    transform: translateY(12px);
-  }
-  to {
-    opacity: 1;
-    transform: none;
-  }
-}
 
-@keyframes brand-mark-enter {
-  from {
-    opacity: 0;
-    transform: scale(0.9);
-  }
-  to {
-    opacity: 1;
-    transform: none;
-  }
-}
+
+
+
 
 /* Drive staggered reveal */
 .app-page--boot {
@@ -1448,12 +1219,8 @@ body {
 
 @media (prefers-reduced-motion: reduce) {
   .page-shell--enter > *,
-  .brand-loader-bar-fill,
-  .brand-loader-inner,
-  .brand-loader--enter .brand-loader-mark,
   .app-page--drive .app-reveal,
-  .app-status,
-  .brand-loader--overlay {
+  .app-status {
     animation: none !important;
   }
 
