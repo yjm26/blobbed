@@ -2228,6 +2228,10 @@ html, body { overflow-x: hidden; }
   animation: brand-loader-in 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
+.brand-loader--boot .brand-loader-inner {
+  width: min(100%, 18rem);
+}
+
 .brand-loader-word {
   width: clamp(7rem, 18vw, 9.5rem);
   margin: 0 0 1.65rem;
@@ -2245,10 +2249,24 @@ html, body { overflow-x: hidden; }
   background: rgba(255, 255, 255, 0.025);
 }
 
+.brand-loader--boot .brand-loader-mark--logo {
+  width: 5.75rem;
+  height: 5.75rem;
+  margin-bottom: 1.05rem;
+  border: 0;
+  background: transparent;
+}
+
 .brand-loader-icon {
   width: 2.35rem;
   opacity: 0.92;
   filter: drop-shadow(0 0 18px rgba(255, 255, 255, 0.08));
+}
+
+.brand-loader--boot .brand-loader-icon {
+  width: 5.2rem;
+  opacity: 0.94;
+  filter: drop-shadow(0 0 26px rgba(255, 255, 255, 0.075));
 }
 
 .brand-loader--enter .brand-loader-mark {
@@ -2276,6 +2294,10 @@ html, body { overflow-x: hidden; }
 .brand-loader-copy {
   text-align: center;
   margin-bottom: 1.35rem;
+}
+
+.brand-loader--boot .brand-loader-copy {
+  margin: 1.25rem 0 0;
 }
 
 .brand-loader-label {
@@ -2322,6 +2344,43 @@ html, body { overflow-x: hidden; }
 
 .brand-loader--error .brand-loader-bar {
   display: none;
+}
+
+.brand-loader-boot-bar {
+  position: relative;
+  width: 100%;
+  height: 2px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.brand-loader-boot-bar::after {
+  content: "";
+  position: absolute;
+  inset: -7px 0;
+  background: radial-gradient(
+    ellipse 70% 80% at var(--boot-progress, 33%) 50%,
+    rgba(255, 255, 255, 0.16),
+    transparent 58%
+  );
+  opacity: 0.8;
+}
+
+.brand-loader-boot-bar-fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: var(--boot-progress, 33%);
+  min-width: 24%;
+  border-radius: inherit;
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.2),
+    rgba(255, 255, 255, 0.72),
+    rgba(255, 255, 255, 0.36)
+  );
+  box-shadow: 0 0 18px rgba(255, 255, 255, 0.12);
+  transition: width 0.28s ease;
 }
 
 .brand-loader-ring--static {
