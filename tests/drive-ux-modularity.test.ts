@@ -342,6 +342,9 @@ describe('Tailwind migration guardrails', () => {
 
     expect(main).toContain("import './tailwind.css'");
     expect(existsSync(join(root, 'src/style.css'))).toBe(false);
+    expect(existsSync(join(root, 'src/style.css.bak'))).toBe(false);
+    expect(existsSync(join(root, 'src/style.css.broken'))).toBe(false);
+    expect(style).toContain('@import "tailwindcss" important;');
     expect(vite).toContain('@tailwindcss/vite');
     expect(pkg).toContain('@tailwindcss/vite');
     expect(modules).toContain('className="');
@@ -449,5 +452,24 @@ describe('Tailwind migration guardrails', () => {
     ]) {
       expect(driveChrome).not.toContain(staleCopy);
     }
+  });
+
+  it('keeps Drive command controls mobile-friendly', () => {
+    const topbar = read('src/components/layout/DriveTopBar.tsx');
+    const toolbar = read('src/components/feature/drive/DriveToolbar.tsx');
+    const filesToolbar = read('src/components/feature/drive/FilesToolbar.tsx');
+    const bulkBar = read('src/components/feature/drive/DriveBulkBar.tsx');
+
+    expect(topbar).toContain('max-[560px]:flex-col');
+    expect(topbar).toContain('max-[560px]:w-full');
+    expect(topbar).toContain('max-[560px]:justify-between');
+    expect(toolbar).toContain('max-[560px]:grid');
+    expect(toolbar).toContain('max-[560px]:grid-cols-2');
+    expect(toolbar).toContain('max-[560px]:min-h-11');
+    expect(filesToolbar).toContain('max-[560px]:min-h-11');
+    expect(filesToolbar).toContain('max-[560px]:w-full');
+    expect(bulkBar).toContain('max-[560px]:bottom-0');
+    expect(bulkBar).toContain('max-[560px]:rounded-t-2xl');
+    expect(bulkBar).toContain('max-[560px]:pb-[calc(env(safe-area-inset-bottom)+0.85rem)]');
   });
 });

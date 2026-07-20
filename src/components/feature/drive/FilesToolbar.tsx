@@ -10,7 +10,7 @@ type Props = {
 };
 
 const actionButton =
-  'min-h-9 rounded-full border border-white/10 bg-white/[0.025] px-3 py-1.5 text-[0.68rem] uppercase tracking-[0.1em] text-white/58 transition-colors duration-150 hover:border-white/22 hover:text-white motion-reduce:transition-none';
+  'min-h-9 rounded-full border border-white/10 bg-white/[0.025] px-3 py-1.5 text-[0.68rem] uppercase tracking-[0.1em] text-white/58 transition-colors duration-150 hover:border-white/22 hover:text-white disabled:cursor-not-allowed disabled:opacity-45 motion-reduce:transition-none max-[560px]:min-h-11 max-[560px]:w-full';
 
 export default function FilesToolbar({
   query,
@@ -22,7 +22,7 @@ export default function FilesToolbar({
 }: Props) {
   return (
     <div className="flex items-center justify-between gap-3 rounded-2xl border border-white/8 bg-white/[0.018] p-2.5 max-[720px]:flex-col max-[720px]:items-stretch max-[560px]:rounded-xl">
-      <label className="relative min-w-[min(100%,20rem)] flex-1 max-[720px]:min-w-0">
+      <label className="relative min-w-[min(100%,20rem)] flex-1 max-[720px]:min-w-0 max-[560px]:w-full">
         <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[0.74rem] text-white/32" aria-hidden="true">
           Search
         </span>
@@ -36,7 +36,7 @@ export default function FilesToolbar({
       </label>
 
       <div className="flex flex-wrap items-center justify-end gap-2 max-[720px]:justify-between max-[560px]:grid max-[560px]:grid-cols-2">
-        <span className="px-1 text-[0.72rem] text-white/42 max-[560px]:col-span-2">
+        <span className="px-1 text-[0.72rem] text-white/42 max-[560px]:col-span-2 max-[560px]:w-full">
           {fileCount} file{fileCount === 1 ? '' : 's'}
           {selectedCount > 0 ? ` · ${selectedCount} selected` : ''}
         </span>
