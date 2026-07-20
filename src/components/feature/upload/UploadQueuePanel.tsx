@@ -41,6 +41,9 @@ function itemPhase(item: QueueItem): string {
   return 'Needs attention';
 }
 
+const linkButton =
+  'border-0 bg-transparent px-1 py-0.5 text-[0.68rem] text-[rgba(200,195,185,0.65)] transition-colors duration-150 hover:text-white motion-reduce:transition-none';
+
 export default function UploadQueuePanel({
   items,
   onRetry,
@@ -70,32 +73,42 @@ export default function UploadQueuePanel({
       : `${done.length} completed`;
 
   return (
-    <div className={`upload-queue ${collapsed ? 'is-collapsed' : ''}`} role="region" aria-label="Upload queue">
-      <header className="upload-queue-head">
+    <div
+      className="fixed bottom-4 right-4 z-[80] w-[min(360px,calc(100vw-1.5rem))] overflow-hidden rounded-[14px] border border-white/10 bg-[rgba(10,10,14,0.92)] shadow-[0_12px_40px_rgba(0,0,0,0.45)] backdrop-blur-[14px] max-[720px]:inset-x-3 max-[720px]:bottom-3 max-[720px]:w-auto"
+      role="region"
+      aria-label="Upload queue"
+    >
+      <header className={`flex items-center justify-between gap-2 px-3 py-2 ${collapsed ? '' : 'border-b border-white/[0.06]'}`}>
         <button
           type="button"
-          className="upload-queue-title"
+          className="flex min-w-0 items-center gap-2 border-0 bg-transparent p-0 text-left text-[0.78rem] text-[rgba(230,228,220,0.9)]"
           onClick={onToggleCollapse}
           aria-expanded={!collapsed}
         >
-          <span className="upload-queue-dot" data-busy={active.length > 0 ? '1' : '0'} />
-          {header}
-          <span className="upload-queue-count">{items.length}</span>
+          <span
+            className={`h-[7px] w-[7px] shrink-0 rounded-full ${
+              active.length > 0
+                ? 'animate-pulse bg-[#8ab4ff] shadow-[0_0_8px_rgba(120,160,255,0.55)]'
+                : 'bg-[#6a6a72]'
+            }`}
+          />
+          <span className="truncate">{header}</span>
+          <span className="ml-1 text-[0.7rem] opacity-45">{items.length}</span>
         </button>
-        <div className="upload-queue-head-actions">
+        <div className="flex shrink-0 items-center gap-2">
           {items.length > 1 ? (
-            <span className="upload-queue-progress-copy">
+            <span className="whitespace-nowrap text-[0.62rem] text-[rgba(200,195,185,0.45)]">
               {completedCount} of {items.length} complete
             </span>
           ) : null}
           {done.length > 0 ? (
-            <button type="button" className="upload-queue-link" onClick={onClearDone}>
+            <button type="button" className={linkButton} onClick={onClearDone}>
               Clear done
             </button>
           ) : null}
           <button
             type="button"
-            className="upload-queue-link"
+            className={linkButton}
             onClick={onToggleCollapse}
             aria-label={collapsed ? 'Expand queue' : 'Collapse queue'}
           >
@@ -105,45 +118,53 @@ export default function UploadQueuePanel({
       </header>
 
       {!collapsed ? (
-        <ul className="upload-queue-list">
+        <ul className="m-0 max-h-60 list-none overflow-auto px-2 py-1.5 pb-2">
           {items.map((item) => {
             const pct = Math.round(Math.min(1, Math.max(0, item.ratio ?? 0)) * 100);
             return (
-              <li key={item.id} className="upload-queue-item" data-status={item.status}>
-                <div className="upload-queue-item-top">
-                  <div className="upload-queue-meta">
-                    <p className="upload-queue-name" title={item.name}>
+              <li key={item.id} className="border-b border-white/[0.04] px-1 py-2 last:border-b-0">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <p className="m-0 max-w-[220px] truncate text-[0.78rem] text-[rgba(235,232,225,0.92)]" title={item.name}>
                       {item.name}
                     </p>
-                    <p className="upload-queue-sub">
+                    <p
+                      className={`m-0 mt-1 max-w-[230px] truncate text-[0.66rem] leading-[1.35] ${
+                        item.status === 'done'
+                          ? 'text-[#9bbb9b]'
+                          : item.status === 'error'
+                            ? 'text-[rgba(255,205,205,0.66)]'
+                            : 'text-[rgba(180,175,165,0.55)]'
+                      }`}
+                    >
                       {formatSize(item.size)} · {itemPhase(item)}
                     </p>
                     {item.status === 'error' && item.error ? (
-                      <p className="upload-queue-error">{item.error}</p>
+                      <p className="m-0 mt-1 max-w-[230px] whitespace-normal text-[0.66rem] leading-[1.35] text-[#e8a0a0]">{item.error}</p>
                     ) : null}
                   </div>
-                  <div className="upload-queue-actions">
+                  <div className="flex shrink-0 gap-1">
                     {item.status === 'running' || item.status === 'queued' ? (
-                      <button type="button" className="upload-queue-link" onClick={() => onCancel(item.id)}>
+                      <button type="button" className={linkButton} onClick={() => onCancel(item.id)}>
                         Cancel
                       </button>
                     ) : null}
                     {item.status === 'error' || item.status === 'cancelled' ? (
-                      <button type="button" className="upload-queue-link" onClick={() => onRetry(item.id)}>
+                      <button type="button" className={linkButton} onClick={() => onRetry(item.id)}>
                         Retry
                       </button>
                     ) : null}
                     {item.status === 'done' || item.status === 'error' || item.status === 'cancelled' ? (
-                      <button type="button" className="upload-queue-link" onClick={() => onDismiss(item.id)}>
+                      <button type="button" className={linkButton} onClick={() => onDismiss(item.id)}>
                         ✕
                       </button>
                     ) : null}
                   </div>
                 </div>
                 {(item.status === 'running' || item.status === 'queued') && (
-                  <div className="upload-queue-bar" aria-hidden="true">
+                  <div className="mt-1.5 h-[3px] overflow-hidden rounded-full bg-white/[0.06]" aria-hidden="true">
                     <span
-                      className="upload-queue-bar-fill"
+                      className="block h-full rounded-full bg-[linear-gradient(90deg,#6a8cff,#b8a0ff)] transition-[width] duration-200"
                       style={{
                         width:
                           item.status === 'queued'

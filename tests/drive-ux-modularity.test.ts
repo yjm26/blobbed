@@ -91,6 +91,40 @@ describe('Tailwind migration guardrails', () => {
     }
   });
 
+  it('uses Tailwind as the upload/share overlay styling path instead of keeping upload/share vanilla CSS blocks', () => {
+    const style = read('src/style.css');
+    const overlayFiles = [
+      'src/components/feature/upload/UploadQueuePanel.tsx',
+      'src/components/feature/share/ShareSheet.tsx',
+    ].map(read).join('\n');
+
+    expect(overlayFiles).toMatch(/\bfixed\b|\brounded-\b|\bborder-\[/);
+    for (const selector of [
+      '.upload-queue',
+      '.upload-queue-head',
+      '.upload-queue-title',
+      '.upload-queue-dot',
+      '.upload-queue-count',
+      '.upload-queue-list',
+      '.upload-queue-item',
+      '.upload-queue-name',
+      '.upload-queue-sub',
+      '.upload-queue-error',
+      '.upload-queue-bar',
+      '.upload-queue-bar-fill',
+      '.share-sheet',
+      '.share-sheet-kicker',
+      '.share-sheet-badge-row',
+      '.share-sheet-row',
+      '.share-sheet-input',
+      '.share-sheet-notes',
+      '.share-sheet-err',
+      '.share-sheet-ok',
+    ]) {
+      expect(style).not.toContain(selector);
+    }
+  });
+
   it('uses Tailwind as the trust panel styling path instead of keeping trust/vault vanilla CSS blocks', () => {
     const style = read('src/style.css');
     const trust = read('src/components/shared/TrustPanel.tsx');
