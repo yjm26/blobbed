@@ -91,6 +91,41 @@ describe('Tailwind migration guardrails', () => {
     }
   });
 
+  it('uses Tailwind as the media lightbox styling path instead of keeping lightbox vanilla CSS blocks', () => {
+    const style = read('src/style.css');
+    const lightbox = read('src/components/feature/media/MediaLightbox.tsx');
+
+    expect(lightbox).toMatch(/\bfixed\b|\bgrid\b|\bborder-\[/);
+    for (const selector of [
+      '.media-lightbox',
+      '.media-lightbox-chrome',
+      '.media-lightbox-name',
+      '.media-lightbox-close',
+      '.media-lightbox-stage',
+      '.media-lightbox-media',
+      '.media-lightbox-video',
+      '.media-lightbox-status',
+      '.media-lightbox-spinner',
+      '.media-lightbox-progress',
+      '.media-lightbox-progress-fill',
+      '.media-lightbox-tool',
+      '.media-lightbox-idx',
+      '.media-lightbox-nav',
+      '.media-lightbox-hint',
+      '.lightbox',
+      '.lightbox-close',
+      '.lightbox-body',
+      '.lightbox-cap',
+      '.download-preview-img',
+      '.download-preview-video',
+      '.preview-loading',
+      '.preview-error',
+      '@keyframes media-lightbox-in',
+    ]) {
+      expect(style).not.toContain(selector);
+    }
+  });
+
   it('uses Tailwind as the upload/share overlay styling path instead of keeping upload/share vanilla CSS blocks', () => {
     const style = read('src/style.css');
     const overlayFiles = [
