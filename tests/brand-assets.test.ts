@@ -29,9 +29,10 @@ describe('Aegis brand assets', () => {
     expect(bootError).not.toContain('brand-loader-core');
   });
 
-  it('keeps wallet connect errors in branded gate UI', () => {
+  it('keeps wallet connect errors in branded gate UI without legacy gate CSS classes', () => {
     const gatePage = readFileSync(join(root, 'src/pages/GatePage.tsx'), 'utf8');
-    expect(gatePage).toContain('gate-error-card');
     expect(gatePage).toContain('Wallet connection failed');
+    expect(gatePage).toContain('border-[rgba(238,132,132,0.18)]');
+    expect(gatePage).not.toContain('gate-error-card');
   });
 });

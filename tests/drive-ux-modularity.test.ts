@@ -37,6 +37,30 @@ describe('Tailwind migration guardrails', () => {
     }
   });
 
+  it('uses Tailwind as the Gate styling path instead of keeping gate vanilla CSS blocks', () => {
+    const style = read('src/style.css');
+    const gate = read('src/pages/GatePage.tsx');
+
+    expect(gate).toMatch(/\bmin-h-\[|\bgrid\b|\bborder-\[/);
+    for (const selector of [
+      '.gate-page',
+      '.gate-bg',
+      '.gate-orb',
+      '.gate-back',
+      '.gate-center',
+      '.gate-login-icon',
+      '.gate-sub',
+      '.gate-cta',
+      '.gate-hint',
+      '.gate-error-card',
+      '@keyframes gate-drift',
+      '@keyframes gate-fade-up',
+      '@keyframes gate-cta-pulse',
+    ]) {
+      expect(style).not.toContain(selector);
+    }
+  });
+
   it('uses Tailwind as the Drive styling path instead of adding vanilla CSS blocks', () => {
     const main = read('src/main.tsx');
     const style = read('src/style.css');
