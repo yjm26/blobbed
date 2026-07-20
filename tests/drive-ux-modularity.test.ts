@@ -383,4 +383,21 @@ describe('Tailwind migration guardrails', () => {
     expect(files).not.toContain('>Move<');
     expect(files).not.toContain('>Delete<');
   });
+
+  it('keeps Drive folders and file selection polished on desktop and mobile', () => {
+    const files = read('src/components/feature/drive/DriveFileList.tsx');
+    const folders = read('src/components/feature/drive/DriveFolderGrid.tsx');
+
+    expect(folders).not.toContain('auto-fit');
+    expect(folders).toMatch(/auto-fill|minmax\(min\(100%,14rem\),16rem\)/);
+    expect(folders).toContain('aspect-[4/3]');
+    expect(folders).toContain('max-[560px]:grid-cols-1');
+
+    expect(files).toContain('SELECT_CHECK_CLASS');
+    expect(files).toContain('absolute left-3 top-3');
+    expect(files).toContain('appearance-none');
+    expect(files).toContain('peer-checked');
+    expect(files).toContain('minmax(min(100%,11.5rem),1fr)');
+    expect(files).toContain('max-[560px]:grid-cols-1');
+  });
 });

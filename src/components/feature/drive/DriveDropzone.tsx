@@ -26,10 +26,10 @@ export default function DriveDropzone({
 
   return (
     <div
-      className={`flex cursor-pointer items-center border border-dashed p-6 outline-none transition ${
+      className={`flex cursor-pointer items-center rounded-2xl border border-dashed p-6 outline-none transition-[border-color,background,transform] duration-200 active:scale-[0.995] motion-reduce:transition-none motion-reduce:active:scale-100 max-[560px]:items-start ${
         compact
-          ? 'min-h-18 flex-row justify-start gap-4 px-5 py-4'
-          : 'min-h-44 flex-col justify-center gap-1.5 text-center'
+          ? 'min-h-18 flex-row justify-start gap-4 px-5 py-4 max-[560px]:px-4'
+          : 'min-h-44 flex-col justify-center gap-1.5 text-center max-[560px]:min-h-32'
       } ${
         dragging
           ? 'border-white/28 bg-white/[0.045]'
@@ -62,8 +62,11 @@ export default function DriveDropzone({
         }`}
         aria-hidden="true"
       />
-      <span className="text-[0.94rem] font-normal text-white/88">{title}</span>
-      <span className="text-[0.75rem] text-white/45">{detail}</span>
+      <span className="text-[0.94rem] font-normal text-white/88 max-[560px]:text-[0.9rem]">{title}</span>
+      <span className="text-[0.75rem] text-white/45 max-[560px]:text-[0.72rem]">
+        <span className="hidden max-[560px]:inline">Tap to choose files · encrypted before upload</span>
+        <span className="max-[560px]:hidden">{detail}</span>
+      </span>
     </div>
   );
 }

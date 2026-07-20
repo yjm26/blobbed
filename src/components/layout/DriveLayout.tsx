@@ -34,7 +34,7 @@ export default function DriveLayout({
 }: DriveLayoutProps) {
   return (
     <main className="grid min-h-0 flex-1 grid-cols-[15.5rem_minmax(0,1fr)] max-[800px]:grid-cols-1">
-      <aside className="flex flex-col gap-7 border-r border-[var(--border)] px-5 py-6 max-[800px]:gap-4 max-[800px]:border-r-0 max-[800px]:border-b max-[800px]:px-5 max-[800px]:py-4">
+      <aside className="flex flex-col gap-7 border-r border-[var(--border)] px-5 py-6 max-[800px]:gap-4 max-[800px]:border-r-0 max-[800px]:border-b max-[800px]:px-4 max-[800px]:py-4">
         <button
           type="button"
           className={ghostButton}
@@ -55,7 +55,7 @@ export default function DriveLayout({
           >
             <span>All files</span>
           </button>
-          <div className="flex flex-col gap-0.5 max-[800px]:max-w-full max-[800px]:flex-row max-[800px]:flex-nowrap max-[800px]:gap-1 max-[800px]:overflow-x-auto max-[800px]:pb-1">
+          <div className="flex flex-col gap-0.5 max-[800px]:-mx-1 max-[800px]:max-w-full max-[800px]:flex-row max-[800px]:flex-nowrap max-[800px]:gap-1 max-[800px]:overflow-x-auto max-[800px]:px-1 max-[800px]:pb-1 [scrollbar-width:none] max-[800px]:[&::-webkit-scrollbar]:hidden">
             {folders.map((f) => (
               <button
                 key={f.id}
@@ -75,7 +75,7 @@ export default function DriveLayout({
         </p>
       </aside>
 
-      <section className="flex min-w-0 flex-col gap-5 px-5 py-5 pb-12 sm:px-6 lg:px-10">{children}</section>
+      <section className="flex min-w-0 flex-col gap-5 px-4 py-4 pb-12 sm:px-6 sm:py-5 lg:px-10">{children}</section>
     </main>
   );
 }
