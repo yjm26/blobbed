@@ -1,4 +1,5 @@
 import React from 'react';
+import AegisLogo from '../../shared/AegisLogo';
 
 export type DriveBootErrorProps = {
   message: string;
@@ -18,10 +19,8 @@ export default function DriveBootError({
     <div className="brand-loader brand-loader--error" role="alert">
       <div className="brand-loader-ambient" aria-hidden="true" />
       <div className="brand-loader-inner">
-        <p className="brand-loader-word">Aegis</p>
-        <div className="brand-loader-mark" aria-hidden="true">
-          <span className="brand-loader-ring brand-loader-ring--static" />
-          <span className="brand-loader-core">A</span>
+        <div className="brand-loader-mark brand-loader-mark--logo" aria-hidden="true">
+          <AegisLogo variant="icon" className="brand-loader-icon" alt="" />
         </div>
         <div className="brand-loader-copy">
           <p className="brand-loader-label">Couldn&apos;t open library</p>

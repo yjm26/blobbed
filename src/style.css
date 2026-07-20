@@ -993,11 +993,33 @@ html, body { overflow-x: hidden; }
   color: rgba(255, 255, 255, 0.55);
 }
 
+.gate-error-card {
+  width: min(100%, 22rem);
+  margin: 0.75rem 0 0;
+  padding: 0.8rem 0.9rem;
+  border: 1px solid rgba(238, 132, 132, 0.18);
+  background:
+    linear-gradient(180deg, rgba(90, 36, 36, 0.16), rgba(20, 10, 10, 0.08)),
+    rgba(255, 255, 255, 0.018);
+  text-align: left;
+  animation: gate-fade-up 0.5s ease both;
+}
+
+.gate-error-kicker {
+  display: block;
+  margin-bottom: 0.25rem;
+  font-size: 0.64rem;
+  font-weight: 400;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+  color: rgba(255, 190, 190, 0.72);
+}
+
 .gate-error {
-  font-size: 0.8125rem;
-  color: #f0a0a0;
-  max-width: 22rem;
-  margin: 0.5rem 0 0;
+  font-size: 0.78rem;
+  color: rgba(255, 210, 210, 0.72);
+  line-height: 1.45;
+  margin: 0;
 }
 
 .gate-error.hidden,
@@ -1024,7 +1046,8 @@ html, body { overflow-x: hidden; }
   .gate-brand,
   .gate-sub,
   .gate-cta,
-  .gate-hint {
+  .gate-hint,
+  .gate-error-card {
     animation: none !important;
   }
 }
@@ -2249,6 +2272,14 @@ html, body { overflow-x: hidden; }
   background: rgba(255, 255, 255, 0.025);
 }
 
+.brand-loader-mark--logo {
+  width: 4.85rem;
+  height: 4.85rem;
+  margin-bottom: 1.25rem;
+  border: 0;
+  background: transparent;
+}
+
 .brand-loader--boot .brand-loader-mark--logo {
   width: 5.75rem;
   height: 5.75rem;
@@ -2263,7 +2294,12 @@ html, body { overflow-x: hidden; }
   filter: drop-shadow(0 0 18px rgba(255, 255, 255, 0.08));
 }
 
-.brand-loader--boot .brand-loader-icon {
+.brand-loader-mark--logo .brand-loader-icon {
+  width: 4.35rem;
+}
+
+.brand-loader--boot .brand-loader-icon,
+.brand-loader--error .brand-loader-icon {
   width: 5.2rem;
   opacity: 0.94;
   filter: drop-shadow(0 0 26px rgba(255, 255, 255, 0.075));
@@ -2407,55 +2443,6 @@ html, body { overflow-x: hidden; }
   padding: 3rem 1rem;
   color: rgba(255, 255, 255, 0.45);
   font-size: 0.9rem;
-}
-
-/* Boot steps */
-.boot-steps {
-  list-style: none;
-  margin: 1.25rem 0 0;
-  padding: 0;
-  width: 100%;
-  display: flex;
-  flex-direction: column;
-  gap: 0.45rem;
-}
-
-.boot-step {
-  display: flex;
-  align-items: center;
-  gap: 0.65rem;
-  font-size: 0.8125rem;
-  color: rgba(255, 255, 255, 0.38);
-  letter-spacing: 0.02em;
-}
-
-.boot-step.is-active {
-  color: rgba(255, 255, 255, 0.92);
-}
-
-.boot-step.is-done {
-  color: rgba(255, 255, 255, 0.55);
-}
-
-.boot-step-mark {
-  width: 1.35rem;
-  height: 1.35rem;
-  border-radius: 999px;
-  border: 1px solid rgba(255, 255, 255, 0.18);
-  display: grid;
-  place-items: center;
-  font-size: 0.625rem;
-  flex-shrink: 0;
-}
-
-.boot-step.is-active .boot-step-mark {
-  border-color: rgba(255, 255, 255, 0.7);
-  background: rgba(255, 255, 255, 0.08);
-}
-
-.boot-step.is-done .boot-step-mark {
-  border-color: rgba(120, 200, 140, 0.45);
-  color: rgba(160, 220, 170, 0.95);
 }
 
 /* Bulk bar */

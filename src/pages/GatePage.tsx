@@ -69,6 +69,10 @@ export default function GatePage() {
     }
   }
 
+  const errorDetail = needPetra
+    ? 'Petra is required to unlock your encrypted library.'
+    : error;
+
   return (
     <div className={`gate-page ${entering ? 'gate-page--leaving' : ''}`}>
       <div className="gate-bg" aria-hidden="true">
@@ -106,7 +110,12 @@ export default function GatePage() {
             'Petra or any Aptos wallet · shelbynet'
           )}
         </p>
-        {error ? <p className="gate-error">{error}</p> : null}
+        {error ? (
+          <div className="gate-error-card" role="alert">
+            <span className="gate-error-kicker">Wallet connection failed</span>
+            <p className="gate-error">{errorDetail}</p>
+          </div>
+        ) : null}
       </main>
 
       {entering ? <BrandLoader overlay variant="enter" label={enterLabel} /> : null}

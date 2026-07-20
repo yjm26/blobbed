@@ -16,4 +16,22 @@ describe('Aegis brand assets', () => {
     expect(html).toContain('<title>Aegis: Your files. Truly yours.</title>');
     expect(html).not.toContain('Aegis —');
   });
+
+  it('uses the real Aegis logo for boot error retry state', () => {
+    const bootError = readFileSync(
+      join(root, 'src/components/feature/drive/DriveBootError.tsx'),
+      'utf8'
+    );
+    expect(bootError).toContain("import AegisLogo from '../../shared/AegisLogo'");
+    expect(bootError).toContain('brand-loader-mark--logo');
+    expect(bootError).toContain('variant="icon"');
+    expect(bootError).not.toContain('brand-loader-ring');
+    expect(bootError).not.toContain('brand-loader-core');
+  });
+
+  it('keeps wallet connect errors in branded gate UI', () => {
+    const gatePage = readFileSync(join(root, 'src/pages/GatePage.tsx'), 'utf8');
+    expect(gatePage).toContain('gate-error-card');
+    expect(gatePage).toContain('Wallet connection failed');
+  });
 });

@@ -36,8 +36,7 @@ export default function BrandLoader({
     >
       <div className="brand-loader-ambient" aria-hidden="true" />
       <div className="brand-loader-inner">
-        <AegisLogo variant="horizontal" className="brand-loader-word" />
-        <div className="brand-loader-mark" aria-hidden="true">
+        <div className="brand-loader-mark brand-loader-mark--logo" aria-hidden="true">
           <AegisLogo variant="icon" className="brand-loader-icon" alt="" />
         </div>
         <div className="brand-loader-copy">
