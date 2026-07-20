@@ -2309,24 +2309,6 @@ html, body { overflow-x: hidden; }
   animation: brand-mark-enter 0.85s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
-.brand-loader-ring {
-  position: absolute;
-  inset: 0;
-  border-radius: 999px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-top-color: rgba(255, 255, 255, 0.78);
-  border-right-color: rgba(255, 255, 255, 0.28);
-  animation: brand-spin 1.05s cubic-bezier(0.45, 0.05, 0.55, 0.95) infinite;
-  box-shadow: 0 0 24px rgba(255, 255, 255, 0.04);
-}
-
-.brand-loader-core {
-  font-size: 1rem;
-  font-weight: 500;
-  letter-spacing: 0.02em;
-  color: rgba(255, 255, 255, 0.9);
-}
-
 .brand-loader-copy {
   text-align: center;
   margin-bottom: 1.35rem;
@@ -2417,11 +2399,6 @@ html, body { overflow-x: hidden; }
   );
   box-shadow: 0 0 18px rgba(255, 255, 255, 0.12);
   transition: width 0.28s ease;
-}
-
-.brand-loader-ring--static {
-  animation: none !important;
-  opacity: 0.55;
 }
 
 .brand-loader-actions {
@@ -2779,7 +2756,6 @@ html, body { overflow-x: hidden; }
 
 @media (prefers-reduced-motion: reduce) {
   .page-shell--enter > *,
-  .brand-loader-ring,
   .brand-loader-bar-fill,
   .brand-loader-inner,
   .brand-loader--enter .brand-loader-mark,
