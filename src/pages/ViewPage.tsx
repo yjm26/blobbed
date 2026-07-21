@@ -160,8 +160,8 @@ export default function ViewPage() {
         const payload = parseShareFragment(hash);
         if (!payload) {
           setTitle('Invalid link');
-          setSub('This share link is missing or corrupted.');
-          setError('No share payload in URL.');
+          setSub('Open the full link, including everything after #.');
+          setError('This link is missing its private share key. Ask the owner to send the complete share link again.');
           return;
         }
         const snap = filesFromPayload(payload);

@@ -223,6 +223,16 @@ describe('Tailwind migration guardrails', () => {
     expect(view).toContain('No files match this filter.');
   });
 
+  it('uses plain-language invalid share link recovery copy', () => {
+    const view = read('src/pages/ViewPage.tsx');
+
+    expect(view).toContain('This link is missing its private share key.');
+    expect(view).toContain('Open the full link, including everything after #.');
+    expect(view).toContain('Ask the owner to send the complete share link again.');
+    expect(view).not.toContain('No share payload in URL.');
+    expect(view).not.toContain('missing or corrupted');
+  });
+
   it('uses Tailwind as the filter menu styling path instead of keeping filter vanilla CSS blocks', () => {
     const style = read('src/tailwind.css');
     const filter = read('src/components/shared/FilterMenu.tsx');
