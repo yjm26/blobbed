@@ -42,6 +42,11 @@ type TileState = {
   failed?: boolean;
 };
 
+type DownloadStatus = {
+  msg: string;
+  kind: 'info' | 'err' | 'ok';
+};
+
 type ViewMode = 'grid' | 'list';
 type KindFilter = 'all' | 'image' | 'video' | 'file';
 type ShareSort = 'name' | 'size' | 'type';
@@ -116,12 +121,6 @@ function shortName(name: string): string {
   return `${base.slice(0, 16)}…${base.slice(-8)}${ext}`;
 }
 
-function triggerDownload(item: ShareFileItem) {
-  void downloadShareItem(item).catch((err) =>
-    alert('Download failed: ' + (err instanceof Error ? err.message : String(err)))
-  );
-}
-
 export default function ViewPage() {
   const loc = useLocation();
   const [title, setTitle] = useState('Shared');
@@ -136,6 +135,7 @@ export default function ViewPage() {
   const [query, setQuery] = useState('');
   const [kindFilter, setKindFilter] = useState<KindFilter>('all');
   const [sortBy, setSortBy] = useState<ShareSort>('name');
+  const [downloadStatus, setDownloadStatus] = useState<DownloadStatus | null>(null);
 
   useEffect(() => {
     const objectUrls: string[] = [];
@@ -238,12 +238,25 @@ export default function ViewPage() {
     });
   }, [tiles, query, kindFilter, sortBy]);
 
+  async function handleDownload(item: ShareFileItem) {
+    setDownloadStatus({ msg: 'Preparing download…', kind: 'info' });
+    try {
+      await downloadShareItem(item);
+      setDownloadStatus({ msg: 'Download started', kind: 'ok' });
+    } catch (err) {
+      setDownloadStatus({
+        msg: 'Download failed: ' + (err instanceof Error ? err.message : String(err)),
+        kind: 'err',
+      });
+    }
+  }
+
   function openPreview(tile: TileState) {
     const { item, url } = tile;
     const image = isImageMime(item.mime, item.name);
     const video = isVideoMime(item.mime, item.name);
     if (!url) {
-      if (!image && !video) triggerDownload(item);
+      if (!image && !video) void handleDownload(item);
       return;
     }
     setLightbox({
@@ -370,6 +383,21 @@ export default function ViewPage() {
             </div>
           </div>
 
+          {downloadStatus ? (
+            <div
+              className={`mb-4 rounded-2xl border px-4 py-3 text-sm ${
+                downloadStatus.kind === 'ok'
+                  ? 'border-emerald-300/15 bg-emerald-950/15 text-emerald-100/72'
+                  : downloadStatus.kind === 'err'
+                    ? 'border-red-300/15 bg-red-950/20 text-[#e8a0a0]'
+                    : 'border-white/8 bg-white/[0.025] text-white/58'
+              }`}
+              role="status"
+            >
+              {downloadStatus.msg}
+            </div>
+          ) : null}
+
           {viewMode === 'grid' ? (
             <div className="grid grid-cols-1 items-start gap-4 sm:grid-cols-[repeat(auto-fill,minmax(min(100%,15rem),1fr))]">
               {visibleTiles.map((tile, index) => (
@@ -389,7 +417,7 @@ export default function ViewPage() {
                       className={VIEW_DOWNLOAD_BUTTON_CLASS}
                       onClick={(e) => {
                         e.stopPropagation();
-                        triggerDownload(tile.item);
+                        void handleDownload(tile.item);
                       }}
                     >
                       Download
@@ -416,7 +444,7 @@ export default function ViewPage() {
                     className={`${VIEW_DOWNLOAD_BUTTON_CLASS} min-w-36 max-[720px]:w-full`}
                     onClick={(e) => {
                       e.stopPropagation();
-                      triggerDownload(tile.item);
+                      void handleDownload(tile.item);
                     }}
                   >
                     Download

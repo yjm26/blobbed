@@ -178,6 +178,24 @@ describe('Tailwind migration guardrails', () => {
     expect(view).toContain('max-w-[76rem]');
   });
 
+  it('uses inline share download status instead of native browser dialogs', () => {
+    const sourceFiles = [
+      'src/pages/ViewPage.tsx',
+      'src/pages/DownloadPage.tsx',
+      'src/pages/DrivePage.tsx',
+      'src/components/feature/share/ShareSheet.tsx',
+    ].map(read).join('\n');
+    const view = read('src/pages/ViewPage.tsx');
+
+    expect(sourceFiles).not.toMatch(/\b(alert|prompt|confirm)\(/);
+    expect(view).toContain('downloadStatus');
+    expect(view).toContain('setDownloadStatus');
+    expect(view).toContain('handleDownload');
+    expect(view).toContain('Preparing download…');
+    expect(view).toContain('Download started');
+    expect(view).toContain('Download failed');
+  });
+
   it('uses Tailwind as the filter menu styling path instead of keeping filter vanilla CSS blocks', () => {
     const style = read('src/tailwind.css');
     const filter = read('src/components/shared/FilterMenu.tsx');
