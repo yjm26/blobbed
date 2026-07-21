@@ -363,6 +363,24 @@ describe('Tailwind migration guardrails', () => {
     expect(queueHook).toContain('onStatus({ msg: phase');
   });
 
+  it('uses safer ShareSheet education copy without promising unavailable revoke controls', () => {
+    const shareSheet = read('src/components/feature/share/ShareSheet.tsx');
+
+    for (const copy of [
+      'Secure capability link',
+      'Anyone with this link can decrypt',
+      'The private key is after # and is not sent to Aegis servers.',
+      'Keep it in trusted channels.',
+      'Recipients can open it without a wallet.',
+      'Live folder links stay current as files change.',
+      'Copied. Send it only where you trust the channel.',
+    ]) {
+      expect(shareSheet).toContain(copy);
+    }
+    expect(shareSheet).not.toContain('Rotate or revoke folder links when needed.');
+    expect(shareSheet).not.toContain('New files appear automatically');
+  });
+
   it('uses Tailwind as the trust panel styling path instead of keeping trust/vault vanilla CSS blocks', () => {
     const style = read('src/tailwind.css');
     const trust = read('src/components/shared/TrustPanel.tsx');

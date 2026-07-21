@@ -68,14 +68,14 @@ export default function ShareSheet({ state, onClose }: Props) {
       }}
     >
       <div
-        className="w-[min(100%,27.5rem)] rounded-[14px] border border-white/10 bg-[#121212] px-5 py-5 shadow-[0_24px_64px_rgba(0,0,0,0.55)]"
+        className="w-[min(100%,30rem)] rounded-[16px] border border-white/10 bg-[#121212] px-5 py-5 shadow-[0_24px_64px_rgba(0,0,0,0.55)]"
         role="dialog"
         aria-modal="true"
         aria-labelledby="share-sheet-title"
         onClick={(e) => e.stopPropagation()}
       >
-        <p className="m-0 mb-2 text-[0.64rem] uppercase tracking-[0.16em] text-white/40">Capability link</p>
-        <h2 id="share-sheet-title" className="m-0 text-[1.05rem] font-medium tracking-[-0.02em] text-[#f2f2f2]">
+        <p className="m-0 mb-2 text-[0.64rem] uppercase tracking-[0.16em] text-white/40">Secure capability link</p>
+        <h2 id="share-sheet-title" className="m-0 text-[1.08rem] font-medium tracking-[-0.02em] text-[#f2f2f2]">
           {isFolder ? 'Live folder link ready' : 'File link ready'}
         </h2>
         <p className="m-0 mt-2 text-[0.8125rem] leading-[1.45] text-[#8a8a8a]">
@@ -85,11 +85,22 @@ export default function ShareSheet({ state, onClose }: Props) {
             : ''}
           {state.subtitle ? ` · ${state.subtitle}` : ''}
         </p>
+
+        <p className="m-0 mt-4 rounded-2xl border border-amber-300/10 bg-amber-950/10 px-4 py-3 text-[0.78rem] leading-[1.55] text-[rgba(235,220,190,0.72)]">
+          Anyone with this link can decrypt {isFolder ? 'this live folder' : 'this file'}. Keep it in trusted channels.
+        </p>
+
+        <div className="my-4 flex flex-wrap gap-1.5">
+          {isFolder ? <span className={pillClass}>Live folder</span> : null}
+          {isFolder ? <span className={pillClass}>Stays current</span> : null}
+          <span className={pillClass}>No wallet needed</span>
+          <span className={pillClass}>Key in URL fragment</span>
+        </div>
+
         {isFolder ? (
-          <div className="my-4 flex flex-wrap gap-1.5">
-            <span className={pillClass}>Live folder</span>
-            <span className={pillClass}>New files appear automatically</span>
-          </div>
+          <p className="m-0 mb-4 text-[0.76rem] leading-[1.5] text-[rgba(200,195,185,0.58)]">
+            Live folder links stay current as files change.
+          </p>
         ) : null}
 
         <label className="mt-5 mb-2 block text-[0.6875rem] uppercase tracking-[0.1em] text-[#6e6e6e]" htmlFor="share-link-input">
@@ -114,15 +125,15 @@ export default function ShareSheet({ state, onClose }: Props) {
         </div>
         {copied ? (
           <p className="m-0 mt-2 text-[0.72rem] text-[rgba(180,220,185,0.74)]">
-            Copied. Anyone with this link can decrypt in their browser.
+            Copied. Send it only where you trust the channel.
           </p>
         ) : null}
         {err ? <p className="m-0 mt-2 text-[0.72rem] text-[#e8a0a0]">{err}</p> : null}
 
         <ul className="m-0 mt-4 list-disc space-y-1 pl-5 text-[0.72rem] leading-[1.45] text-[rgba(200,195,185,0.58)] [&_code]:text-[#c8b8a0]">
-          <li>The decryption key stays in the URL fragment, not API requests.</li>
-          <li>Recipients do not need a wallet.</li>
-          <li>Anyone with the link can decrypt. Rotate or revoke folder links when needed.</li>
+          <li>The private key is after # and is not sent to Aegis servers.</li>
+          <li>Recipients can open it without a wallet.</li>
+          <li>{isFolder ? 'This link opens the current folder contents.' : 'This link opens this file only.'}</li>
         </ul>
 
         <div className="mt-5 flex justify-end gap-2">
