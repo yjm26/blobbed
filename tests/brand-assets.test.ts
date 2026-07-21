@@ -17,6 +17,19 @@ describe('Aegis brand assets', () => {
     expect(html).not.toContain('Aegis —');
   });
 
+  it('uses Aegis package metadata while preserving compatibility-sensitive legacy keys', () => {
+    const pkg = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8'));
+    const lock = JSON.parse(readFileSync(join(root, 'package-lock.json'), 'utf8'));
+    const vault = readFileSync(join(root, 'scripts/vault.ts'), 'utf8');
+    const aptos = readFileSync(join(root, 'scripts/aptos-client.ts'), 'utf8');
+
+    expect(pkg.name).toBe('aegis');
+    expect(lock.name).toBe('aegis');
+    expect(lock.packages[''].name).toBe('aegis');
+    expect(vault).toContain('blobbed-vault-v1');
+    expect(aptos).toContain('blobbed_session');
+  });
+
   it('uses the real Aegis logo for boot error retry state', () => {
     const bootError = readFileSync(
       join(root, 'src/components/feature/drive/DriveBootError.tsx'),
