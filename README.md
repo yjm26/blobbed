@@ -113,6 +113,15 @@ npx vitest run tests/drive-ux-modularity.test.ts
 npm run test:e2e
 ```
 
+## Security contact
+
+Please report vulnerabilities privately first:
+
+- Discord: `noeraxbt`
+- X / Twitter: https://x.com/noeraxbt
+
+See [`SECURITY.md`](./SECURITY.md) for scope, safe-harbor notes, and beta limitations.
+
 ## Security model
 
 Aegis is designed around client-side encryption and capability links.
