@@ -34,7 +34,7 @@ function formatSize(bytes: number): string {
 }
 
 function itemPhase(item: QueueItem): string {
-  if (item.status === 'running') return item.phase || 'Encrypting & uploading';
+  if (item.status === 'running') return item.phase || 'Preparing file';
   if (item.status === 'queued') return 'Waiting';
   if (item.status === 'done') return 'Done';
   if (item.status === 'cancelled') return 'Cancelled';
@@ -67,7 +67,7 @@ export default function UploadQueuePanel({
   const running = items.find((i) => i.status === 'running');
   const completedCount = items.filter((i) => i.status === 'done').length;
   const header = running
-    ? `Encrypting & uploading · ${running.name}`
+    ? `${itemPhase(running)} · ${running.name}`
     : active.length
       ? `${active.length} waiting to upload`
       : `${done.length} completed`;

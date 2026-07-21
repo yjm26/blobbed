@@ -288,6 +288,26 @@ describe('Tailwind migration guardrails', () => {
     }
   });
 
+  it('uses clear trust-building upload progress language', () => {
+    const queueHook = read('src/components/hooks/useQueue.ts');
+    const queuePanel = read('src/components/feature/upload/UploadQueuePanel.tsx');
+    const uploadUi = `${queueHook}\n${queuePanel}`;
+
+    expect(queueHook).toContain('uploadPhaseLabel');
+    for (const copy of [
+      'Preparing file',
+      'Encrypting locally',
+      'Uploading encrypted blob',
+      'Saving library metadata',
+      'Done',
+    ]) {
+      expect(uploadUi).toContain(copy);
+    }
+    expect(queuePanel).not.toContain('Encrypting & uploading');
+    expect(queueHook).not.toContain("phase: 'Starting'");
+    expect(queueHook).toContain('onStatus({ msg: phase');
+  });
+
   it('uses Tailwind as the trust panel styling path instead of keeping trust/vault vanilla CSS blocks', () => {
     const style = read('src/tailwind.css');
     const trust = read('src/components/shared/TrustPanel.tsx');

@@ -11,6 +11,24 @@ import { listAllFiles } from '../../../scripts/library-store';
 
 export type StatusMsg = { msg: string; kind: 'info' | 'err' | 'ok' } | null;
 
+export function uploadPhaseLabel(rawPhase?: string): string {
+  const phase = (rawPhase || '').toLowerCase();
+  if (!phase || phase === 'starting' || phase === 'reading' || phase === 'thumbnail') {
+    return 'Preparing file';
+  }
+  if (phase.includes('encrypt') || phase === 'encrypted') {
+    return 'Encrypting locally';
+  }
+  if (phase.includes('sign upload') || phase.includes('upload to shelby')) {
+    return 'Uploading encrypted blob';
+  }
+  if (phase.includes('wrap key') || phase.includes('save library')) {
+    return 'Saving library metadata';
+  }
+  if (phase === 'done') return 'Done';
+  return 'Preparing file';
+}
+
 export function useQueue(opts: {
   wallet: WalletAccount | null;
   folderId: string | null;
@@ -34,6 +52,7 @@ export function useQueue(opts: {
   folderIdRef.current = folderId;
   const walletRef = useRef(wallet);
   walletRef.current = wallet;
+  const lastStatusPhaseRef = useRef('');
 
   const enqueueFiles = useCallback((list: FileList | File[]) => {
     const w = walletRef.current;
@@ -68,19 +87,23 @@ export function useQueue(opts: {
 
       queueBusy.current = true;
       const controller = new AbortController();
+      lastStatusPhaseRef.current = '';
+      const initialPhase = uploadPhaseLabel('Starting');
       setQueue((q) =>
         q.map((j) =>
           j.id === next.id
             ? {
                 ...j,
                 status: 'running',
-                phase: 'Starting',
+                phase: initialPhase,
                 ratio: 0.02,
                 controller,
               }
             : j
         )
       );
+      onStatus({ msg: initialPhase, kind: 'info' });
+      lastStatusPhaseRef.current = initialPhase;
 
       try {
         if (!isVaultUnlocked(w.address)) {
@@ -90,13 +113,18 @@ export function useQueue(opts: {
         await uploadFile(next.file, w, next.folderId, {
           signal: controller.signal,
           onProgress: (p) => {
+            const phase = uploadPhaseLabel(p.phase);
             setQueue((q) =>
               q.map((j) =>
                 j.id === next.id && j.status === 'running'
-                  ? { ...j, phase: p.phase, ratio: p.ratio }
+                  ? { ...j, phase, ratio: p.ratio }
                   : j
               )
             );
+            if (phase !== lastStatusPhaseRef.current) {
+              onStatus({ msg: phase, kind: 'info' });
+              lastStatusPhaseRef.current = phase;
+            }
           },
         });
         setQueue((q) =>
