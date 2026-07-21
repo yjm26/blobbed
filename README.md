@@ -144,27 +144,6 @@ Not solved yet:
 - Progressive seekable encrypted video streaming.
 - Live folder share mutation/revocation beyond the explicit live-share workstream.
 
-## Repository hygiene
-
-Tracked code should stay limited to active app/API/source/test files and public brand assets.
-
-Ignored/local-only:
-
-- `.env*`
-- `.hermes/`
-- `docs/`
-- `SOUL.md`
-- `DESIGN.md`
-- `dist/`
-- `node_modules/`
-- Playwright/test output
-
-Legacy standalone Vite/vanilla entrypoints were removed. The active app entry is:
-
-```txt
-index.html → src/main.tsx → src/App.tsx
-```
-
 ## Project status
 
 Aegis is a beta Shelby dApp focused on the core encrypted storage loop:
