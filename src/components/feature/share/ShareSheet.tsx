@@ -16,7 +16,7 @@ type Props = {
 const pillClass =
   'border border-[rgba(145,185,168,0.2)] bg-[rgba(60,95,82,0.14)] px-2 py-1 text-[0.64rem] uppercase tracking-[0.08em] text-[rgba(205,235,220,0.72)]';
 const modalButton =
-  'rounded-full px-4 py-2 text-[0.8125rem] font-medium transition-opacity duration-150 disabled:cursor-not-allowed disabled:opacity-50 motion-reduce:transition-none';
+  'rounded-full px-4 py-2 text-[0.8125rem] font-medium transition-opacity duration-150 disabled:cursor-not-allowed disabled:opacity-50 motion-reduce:transition-none max-[480px]:min-h-11 max-[420px]:w-full';
 const ghostButton = `${modalButton} border border-white/[0.12] bg-transparent text-[#bdbdbd] hover:border-white/25 hover:text-white`;
 const primaryButton = `${modalButton} border border-[#f0f0f0] bg-[#f0f0f0] text-[#0a0a0a] hover:opacity-90`;
 
@@ -61,14 +61,14 @@ export default function ShareSheet({ state, onClose }: Props) {
 
   return (
     <div
-      className="fixed inset-0 z-[80] grid place-items-center bg-black/70 p-5 backdrop-blur-md"
+      className="fixed inset-0 z-[80] grid place-items-center bg-black/70 p-5 backdrop-blur-md max-[420px]:p-3"
       role="presentation"
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
     >
       <div
-        className="w-[min(100%,30rem)] rounded-[16px] border border-white/10 bg-[#121212] px-5 py-5 shadow-[0_24px_64px_rgba(0,0,0,0.55)]"
+        className="max-h-[calc(100dvh-2rem)] w-[min(100%,30rem)] overflow-y-auto rounded-[16px] border border-white/10 bg-[#121212] px-5 py-5 shadow-[0_24px_64px_rgba(0,0,0,0.55)] max-[420px]:rounded-[14px] max-[420px]:px-4 max-[420px]:py-4"
         role="dialog"
         aria-modal="true"
         aria-labelledby="share-sheet-title"
@@ -106,7 +106,7 @@ export default function ShareSheet({ state, onClose }: Props) {
         <label className="mt-5 mb-2 block text-[0.6875rem] uppercase tracking-[0.1em] text-[#6e6e6e]" htmlFor="share-link-input">
           Link
         </label>
-        <div className="flex items-stretch gap-2 max-[480px]:flex-col">
+        <div className="grid grid-cols-[minmax(0,1fr)_auto] items-stretch gap-2 max-[480px]:grid max-[480px]:grid-cols-1">
           <input
             id="share-link-input"
             ref={inputRef}
@@ -136,7 +136,7 @@ export default function ShareSheet({ state, onClose }: Props) {
           <li>{isFolder ? 'This link opens the current folder contents.' : 'This link opens this file only.'}</li>
         </ul>
 
-        <div className="mt-5 flex justify-end gap-2">
+        <div className="mt-5 flex justify-end gap-2 max-[420px]:flex-col">
           <button type="button" className={ghostButton} onClick={onClose}>
             Close
           </button>

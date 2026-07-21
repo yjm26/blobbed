@@ -381,6 +381,47 @@ describe('Tailwind migration guardrails', () => {
     expect(shareSheet).not.toContain('New files appear automatically');
   });
 
+  it('keeps Drive, ShareSheet, and live share controls usable on phone-sized screens', () => {
+    const shareSheet = read('src/components/feature/share/ShareSheet.tsx');
+    const view = read('src/pages/ViewPage.tsx');
+    const bulkBar = read('src/components/feature/drive/DriveBulkBar.tsx');
+
+    for (const utility of [
+      'max-h-[calc(100dvh-2rem)]',
+      'overflow-y-auto',
+      'max-[420px]:p-3',
+      'max-[420px]:px-4',
+      'max-[480px]:grid',
+      'max-[480px]:min-h-11',
+      'max-[420px]:flex-col',
+      'max-[420px]:w-full',
+    ]) {
+      expect(shareSheet).toContain(utility);
+    }
+
+    for (const utility of [
+      'max-[560px]:flex-col',
+      'max-[560px]:items-stretch',
+      'max-[560px]:w-full',
+      'max-[560px]:grid-cols-1',
+      'max-[560px]:min-h-11',
+      'max-[560px]:px-4',
+      'max-[560px]:text-left',
+    ]) {
+      expect(view).toContain(utility);
+    }
+
+    for (const utility of [
+      'max-[560px]:pb-[calc(env(safe-area-inset-bottom)+0.85rem)]',
+      'max-[560px]:max-h-[45dvh]',
+      'max-[560px]:overflow-y-auto',
+      'max-[560px]:grid-cols-2',
+      'max-[560px]:min-h-11',
+    ]) {
+      expect(bulkBar).toContain(utility);
+    }
+  });
+
   it('uses Tailwind as the trust panel styling path instead of keeping trust/vault vanilla CSS blocks', () => {
     const style = read('src/tailwind.css');
     const trust = read('src/components/shared/TrustPanel.tsx');

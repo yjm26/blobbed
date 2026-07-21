@@ -69,7 +69,7 @@ const VIEW_DOWNLOAD_BUTTON_CLASS =
   'min-h-11 w-full cursor-pointer appearance-none rounded-full border border-[color-mix(in_oklch,var(--border,#2a2a2a)_68%,var(--text,#fff))] bg-white/[0.02] px-4 text-[0.6875rem] uppercase tracking-[0.12em] text-[var(--text,#fff)] transition-[background,color,border-color] duration-150 hover:border-[var(--text,#fff)] hover:bg-[var(--text,#fff)] hover:text-[var(--bg,#0a0a0a)] motion-reduce:transition-none';
 
 const VIEW_TOOL_INPUT_CLASS =
-  'min-h-11 rounded-full border border-white/10 bg-white/[0.035] px-4 text-[0.82rem] text-white/84 outline-none transition-[border-color,background] duration-150 placeholder:text-white/34 focus:border-white/24 focus:bg-white/[0.055] motion-reduce:transition-none';
+  'min-h-11 rounded-full border border-white/10 bg-white/[0.035] px-4 text-[0.82rem] text-white/84 outline-none transition-[border-color,background] duration-150 placeholder:text-white/34 focus:border-white/24 focus:bg-white/[0.055] motion-reduce:transition-none max-[560px]:min-h-11 max-[560px]:w-full';
 
 function fileKindId(item: ShareFileItem): KindFilter {
   if (isImageMime(item.mime, item.name)) return 'image';
@@ -315,20 +315,20 @@ export default function ViewPage() {
 
   return (
     <div className="flex min-h-[100svh] min-h-[100dvh] flex-col bg-[var(--bg)] text-[var(--text)]">
-      <header className="sticky top-0 z-40 flex items-center justify-between gap-4 border-b border-[var(--border)] bg-[color-mix(in_oklch,var(--bg)_94%,transparent)] px-4 py-4 text-[var(--text)] backdrop-blur-xl sm:px-6 lg:px-8">
-        <Link to="/" className="inline-flex shrink-0 items-center leading-none text-[var(--text)] no-underline" aria-label="Aegis home">
+      <header className="sticky top-0 z-40 flex items-center justify-between gap-4 border-b border-[var(--border)] bg-[color-mix(in_oklch,var(--bg)_94%,transparent)] px-4 py-4 text-[var(--text)] backdrop-blur-xl sm:px-6 lg:px-8 max-[560px]:flex-col max-[560px]:items-stretch">
+        <Link to="/" className="inline-flex shrink-0 items-center leading-none text-[var(--text)] no-underline max-[560px]:w-full" aria-label="Aegis home">
           <AegisLogo variant="horizontal" className="!w-[clamp(7.25rem,9vw,9rem)]" />
         </Link>
-        <div className="flex flex-wrap items-center justify-end gap-3">
+        <div className="flex flex-wrap items-center justify-end gap-3 max-[560px]:w-full max-[560px]:justify-between">
           <span className="text-[0.68rem] uppercase tracking-[0.12em] text-white/42 max-[560px]:hidden">Secure share</span>
-          <Link to="/" className="min-h-10 rounded-full border border-white/10 px-4 py-2 text-[0.75rem] uppercase tracking-[0.12em] text-[var(--text)] no-underline transition-[border-color,background,opacity] duration-150 hover:border-white/24 hover:bg-white/[0.04] motion-reduce:transition-none">
+          <Link to="/" className="min-h-10 rounded-full border border-white/10 px-4 py-2 text-[0.75rem] uppercase tracking-[0.12em] text-[var(--text)] no-underline transition-[border-color,background,opacity] duration-150 hover:border-white/24 hover:bg-white/[0.04] motion-reduce:transition-none max-[560px]:min-h-11 max-[560px]:w-full max-[560px]:text-center">
             Home
           </Link>
         </div>
       </header>
 
-      <main className="mx-auto w-full max-w-[76rem] px-[clamp(1.15rem,4vw,2.75rem)] pb-20 pt-8 sm:pt-[clamp(3rem,7vw,5rem)]">
-        <header className="relative overflow-hidden rounded-[2rem] border border-white/8 bg-[radial-gradient(circle_at_10%_0%,oklch(0.34_0.05_190_/_0.18),transparent_18rem),radial-gradient(circle_at_92%_8%,oklch(0.32_0.035_250_/_0.16),transparent_16rem),rgba(255,255,255,0.012)] p-[clamp(1.25rem,3vw,2rem)] shadow-[0_24px_70px_rgba(0,0,0,0.22)]">
+      <main className="mx-auto w-full max-w-[76rem] px-[clamp(1.15rem,4vw,2.75rem)] pb-20 pt-8 sm:pt-[clamp(3rem,7vw,5rem)] max-[560px]:px-4">
+        <header className="relative overflow-hidden rounded-[2rem] border border-white/8 bg-[radial-gradient(circle_at_10%_0%,oklch(0.34_0.05_190_/_0.18),transparent_18rem),radial-gradient(circle_at_92%_8%,oklch(0.32_0.035_250_/_0.16),transparent_16rem),rgba(255,255,255,0.012)] p-[clamp(1.25rem,3vw,2rem)] text-left shadow-[0_24px_70px_rgba(0,0,0,0.22)] max-[560px]:rounded-[1.35rem] max-[560px]:text-left">
           <div className="grid max-w-[50rem] gap-3">
             <p className="mb-[0.15rem] text-[0.72rem] uppercase tracking-[0.18em] text-[color-mix(in_oklch,var(--text-muted,#888)_88%,transparent)]">{shareLabel}</p>
             <h1 className="m-0 text-[clamp(2.35rem,5vw,4.4rem)] font-[250] leading-[0.98] tracking-[-0.055em]">{title}</h1>
@@ -347,7 +347,7 @@ export default function ViewPage() {
 
         <section className="mt-[clamp(1.5rem,4vw,2.4rem)]" aria-labelledby="share-files-title">
           {canShowFileControls ? (
-            <div className="mb-4 flex flex-wrap items-end justify-between gap-4">
+            <div className="mb-4 flex flex-wrap items-end justify-between gap-4 max-[560px]:flex-col max-[560px]:items-stretch">
               <div>
                 <h2 id="share-files-title" className="m-0 text-[0.8rem] uppercase tracking-[0.16em] text-white/72">Files</h2>
                 <p className="m-0 mt-1 text-sm text-white/45">Showing {visibleTiles.length} of {tiles.length}</p>
@@ -380,9 +380,9 @@ export default function ViewPage() {
                     <option value="type">Sort: Type</option>
                   </select>
                 </label>
-                <div className="flex min-h-11 overflow-hidden rounded-full border border-white/10 bg-white/[0.035] p-1" aria-label="View mode">
-                  <button type="button" className={`rounded-full px-3 text-[0.68rem] uppercase tracking-[0.1em] transition-colors duration-150 ${viewMode === 'grid' ? 'bg-white text-black' : 'text-white/58 hover:text-white'}`} onClick={() => setViewMode('grid')}>Grid</button>
-                  <button type="button" className={`rounded-full px-3 text-[0.68rem] uppercase tracking-[0.1em] transition-colors duration-150 ${viewMode === 'list' ? 'bg-white text-black' : 'text-white/58 hover:text-white'}`} onClick={() => setViewMode('list')}>List</button>
+                <div className="flex min-h-11 overflow-hidden rounded-full border border-white/10 bg-white/[0.035] p-1 max-[560px]:w-full" aria-label="View mode">
+                  <button type="button" className={`rounded-full px-3 text-[0.68rem] uppercase tracking-[0.1em] transition-colors duration-150 max-[560px]:min-h-11 max-[560px]:flex-1 ${viewMode === 'grid' ? 'bg-white text-black' : 'text-white/58 hover:text-white'}`} onClick={() => setViewMode('grid')}>Grid</button>
+                  <button type="button" className={`rounded-full px-3 text-[0.68rem] uppercase tracking-[0.1em] transition-colors duration-150 max-[560px]:min-h-11 max-[560px]:flex-1 ${viewMode === 'list' ? 'bg-white text-black' : 'text-white/58 hover:text-white'}`} onClick={() => setViewMode('list')}>List</button>
                 </div>
               </div>
             </div>

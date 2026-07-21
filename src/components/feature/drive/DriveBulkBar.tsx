@@ -10,7 +10,7 @@ export type DriveBulkBarProps = {
 };
 
 const BULK_BAR_CLASS =
-  'fixed bottom-5 left-1/2 z-[60] flex max-w-[calc(100vw-1.5rem)] -translate-x-1/2 flex-wrap items-center justify-center gap-4 rounded-full border border-white/10 bg-[rgba(12,12,14,0.92)] px-[0.85rem] py-[0.65rem] shadow-[0_12px_40px_rgba(0,0,0,0.45)] backdrop-blur-xl max-[560px]:bottom-0 max-[560px]:left-0 max-[560px]:right-0 max-[560px]:max-w-none max-[560px]:translate-x-0 max-[560px]:flex-col max-[560px]:items-stretch max-[560px]:gap-3 max-[560px]:rounded-b-none max-[560px]:rounded-t-2xl max-[560px]:px-4 max-[560px]:pt-4 max-[560px]:pb-[calc(env(safe-area-inset-bottom)+0.85rem)]';
+  'fixed bottom-5 left-1/2 z-[60] flex max-w-[calc(100vw-1.5rem)] -translate-x-1/2 flex-wrap items-center justify-center gap-4 rounded-full border border-white/10 bg-[rgba(12,12,14,0.92)] px-[0.85rem] py-[0.65rem] shadow-[0_12px_40px_rgba(0,0,0,0.45)] backdrop-blur-xl max-[560px]:bottom-0 max-[560px]:left-0 max-[560px]:right-0 max-[560px]:max-h-[45dvh] max-[560px]:max-w-none max-[560px]:translate-x-0 max-[560px]:flex-col max-[560px]:items-stretch max-[560px]:gap-3 max-[560px]:overflow-y-auto max-[560px]:rounded-b-none max-[560px]:rounded-t-2xl max-[560px]:px-4 max-[560px]:pt-4 max-[560px]:pb-[calc(env(safe-area-inset-bottom)+0.85rem)]';
 
 const BULK_SELECT_CLASS =
   'min-h-10 max-w-[11rem] cursor-pointer appearance-none rounded-full border border-white/15 bg-white/5 px-[0.85rem] py-[0.45rem] text-[0.8125rem] text-[#f2f2f2] disabled:cursor-not-allowed disabled:opacity-50 max-[560px]:min-h-11 max-[560px]:w-full max-[560px]:max-w-none';
