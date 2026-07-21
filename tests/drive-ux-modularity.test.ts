@@ -654,6 +654,14 @@ describe('Tailwind migration guardrails', () => {
     }
   });
 
+  it('clips Gate decorative background glows so they cannot create page scrollbars', () => {
+    const gate = read('src/pages/GatePage.tsx');
+
+    expect(gate).toContain('fixed inset-0 z-0 overflow-hidden bg-[#050505]');
+    expect(gate).toContain('-bottom-[18%] -right-[10%]');
+    expect(gate).toContain('-left-[8%] -top-[12%]');
+  });
+
   it('keeps Drive command controls mobile-friendly', () => {
     const topbar = read('src/components/layout/DriveTopBar.tsx');
     const toolbar = read('src/components/feature/drive/DriveToolbar.tsx');

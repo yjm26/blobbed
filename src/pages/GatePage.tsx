@@ -75,7 +75,7 @@ export default function GatePage() {
 
   return (
     <div className="relative min-h-[100svh] min-h-[100dvh] overflow-hidden bg-[#050505] text-[#f5f5f5]">
-      <div className="pointer-events-none fixed inset-0 z-0 bg-[#050505]" aria-hidden="true">
+      <div className="pointer-events-none fixed inset-0 z-0 overflow-hidden bg-[#050505]" aria-hidden="true">
         <div className="absolute -left-[8%] -top-[12%] h-[min(70vw,520px)] w-[min(70vw,520px)] rounded-full bg-[radial-gradient(circle,rgba(80,80,90,0.55)_0%,transparent_70%)] opacity-45 blur-[80px] will-change-transform" />
         <div className="absolute -bottom-[18%] -right-[10%] h-[min(60vw,440px)] w-[min(60vw,440px)] rounded-full bg-[radial-gradient(circle,rgba(120,120,130,0.35)_0%,transparent_70%)] opacity-45 blur-[80px] will-change-transform" />
         <div className="absolute left-[48%] top-[42%] h-[min(40vw,280px)] w-[min(40vw,280px)] -translate-x-1/2 -translate-y-1/2 rounded-full bg-[radial-gradient(circle,rgba(255,255,255,0.06)_0%,transparent_70%)] opacity-45 blur-[80px] will-change-transform" />
